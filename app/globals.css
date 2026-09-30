@@ -146,3 +146,17 @@ li.run .mark { border: 2px solid #c9d4d2; border-top-color: #3fae9b; animation: 
 .mem-v { font-weight: 600; overflow-wrap: anywhere; }
 @keyframes memIn { 0% { background: rgba(106,165,168,.28); } 100% { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .mem-row { animation: none; } }
+
+.esc { margin-top: 16px; background: #fffdf9; border-radius: 12px; padding: 14px 16px; border: 1px solid rgba(0,0,0,.1); font-size: 14px; line-height: 1.5; }
+.esc-tag { display: flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); font-weight: 700; }
+.esc-datos { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.esc-chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: rgba(106,165,168,.18); color: #33454b; }
+.esc-chip.alt { background: rgba(200,140,80,.2); }
+.esc-txt { color: #22333a; white-space: pre-line; overflow-wrap: anywhere; }
+.esc-espera { color: var(--muted); font-style: italic; }
+.cursor { display: inline-block; width: 2px; height: 1em; background: var(--teal); margin-left: 2px; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.esc-alt { margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,.18); }
+.esc-btn { margin-top: 10px; border: 1px solid var(--teal); background: transparent; color: var(--teal); border-radius: 18px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.esc-btn:hover { background: rgba(106,165,168,.12); }
+@media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
