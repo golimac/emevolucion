@@ -123,12 +123,14 @@ function Proc({ m }) {
 function Escribiendo({ texto }) {
   const partes = String(texto).split(/(\s+)/);
   const [n, setN] = useState(0);
+  const ref = useRef(null);
   useEffect(() => {
     setN(0);
     const id = setInterval(() => setN((x) => { if (x >= partes.length) { clearInterval(id); return x; } return x + 2; }), 45);
     return () => clearInterval(id);
   }, [texto]);
-  return <span>{partes.slice(0, n).join("")}{n < partes.length && <i className="cursor" />}</span>;
+  useEffect(() => { ref.current?.scrollIntoView({ block: "nearest" }); }, [n]);
+  return <span ref={ref}>{partes.slice(0, n).join("")}{n < partes.length && <i className="cursor" />}</span>;
 }
 
 function Escritura({ g }) {
@@ -149,9 +151,11 @@ function Escritura({ g }) {
 }
 
 function Memoria({ items }) {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.lastElementChild?.scrollIntoView({ block: "nearest" }); }, [items]);
   if (!items.length) return null;
   return (
-    <div className="mem">
+    <div className="mem" ref={ref}>
       <div className="mem-tag">Lo que eme va aprendiendo</div>
       {items.map((it) => (
         <div className="mem-row" key={it.k + ":" + it.n}>
@@ -277,12 +281,13 @@ export default function Demo() {
       const id = ++idc.current;
       const lineas = [`Estado: ${datos.estado}`, `Termómetro inicial: ${datos.t1} de 10`, datos.nombre ? `Nombre: ${datos.nombre}` : null].filter(Boolean);
       const onOtro = async () => {
-        const otro = pick(PILARES[datos.pilar].estados.filter((e) => e !== datos.estado));
+        const pilarAlt = pick(ORDEN_PILARES.filter((p) => p !== datos.pilar));
+        const otro = pick(PILARES[pilarAlt].estados);
         const t1b = datos.t1 <= 5 ? 9 : 2;
         const datosAlt = [`Estado: ${otro}`, `Termómetro inicial: ${t1b} de 10`];
         setGens((x) => x.map((g) => (g.id === id ? { ...g, alt: { datos: datosAlt, texto: null } } : g)));
-        const r = await generar(tipo, { ...datos, estado: otro, t1: t1b });
-        const variante = pick(PRACTICAS_RUTA[datos.pilar][tipo]).replaceAll("{estado}", otro.toLowerCase());
+        const r = await generar(tipo, { ...datos, pilar: pilarAlt, estado: otro, t1: t1b });
+        const variante = pick(PRACTICAS_RUTA[pilarAlt][tipo]).replaceAll("{estado}", otro.toLowerCase());
         setGens((x) => x.map((g) => (g.id === id ? { ...g, alt: { datos: datosAlt, texto: r?.texto || variante } } : g)));
       };
       setGens((x) => [...x, { id, titulo, datos: lineas, texto: null, onOtro }]);
@@ -670,7 +675,7 @@ export default function Demo() {
         <h2 key={note} className="titulo-nota" aria-label={N.titulo}><Letras texto={N.titulo} /></h2>
         <p>{N.texto}</p>
         <Detalle d={panel} />
-        {gens.map((g) => <Escritura key={g.id} g={g} />)}
+        {gens.length > 0 && <div className="escs">{gens.map((g) => <Escritura key={g.id} g={g} />)}</div>}
         <Memoria items={memoria} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
