@@ -194,12 +194,12 @@ export default function Demo() {
     const say = async (m, wait = 800) => {
       if (typeof m === "string") m = { type: "text", text: m };
       const len = m.type === "text" ? m.text.length : m.type === "voice" ? 60 : 30;
-      wait = Math.min(1600 + len * 26, 5200) + Math.min(wait, 1500) * 0.4;
+      wait = (Math.min(1600 + len * 26, 5200) + Math.min(wait, 1500) * 0.4) * 0.5;
       setTyping(true);
       await sleep(wait);
       setTyping(false);
       push(m);
-      await sleep(900);
+      await sleep(450);
     };
     const STEP = 600;
     const bts = async (d) => {
