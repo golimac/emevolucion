@@ -560,11 +560,9 @@ export default function Demo() {
         </div>
       </div>
       <aside className="side">
-        <div key={note} className="nota">
-          <div className="tag">Qué estás viendo <span className="nuevo">Cambió, léelo</span></div>
-          <h2>{N.titulo}</h2>
-          <p>{N.texto}</p>
-        </div>
+        <div className="tag">Qué estás viendo</div>
+        <h2 key={note} className="titulo-nota"><span>{N.titulo}</span></h2>
+        <p>{N.texto}</p>
         <Detalle d={panel} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
