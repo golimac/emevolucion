@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ElementArt, CaminoArt, Thermometer } from "./Art";
 import {
   PILARES, ORDEN_PILARES, PREGUNTAS, RESPUESTAS, BIENVENIDA, PRIVACIDAD, PRACTICAS_RUTA,
-  CAMINOS, PRACTICAS_PULSO, PRACTICAS_PULSO_ORDEN, DERIVACION, NOTAS, pick, shuffle,
+  CAMINOS, PRACTICAS_PULSO, PRACTICAS_PULSO_ORDEN, DERIVACION, NOTAS, CONTINUAR_INICIO, ESTADOS_DEF, pick, shuffle,
 } from "../lib/content";
 
 const rnd = () => Math.floor(Math.random() * 1e9);
@@ -87,7 +87,7 @@ function Avance({ d }) {
       <div className="row"><span>Prácticas hoy</span><b>{d.practicas}</b></div>
       <div className="row"><span>Días de práctica</span><b>1</b></div>
       <div className="row"><span>Caminos de Pulso</span><b>{d.caminos.length ? d.caminos.join(", ") : "Ninguno aún"}</b></div>
-      <div className="row"><span>Termómetro</span><b>Energía {d.termo.toLowerCase()}</b></div>
+      <div className="row"><span>Termómetro (1 a 10)</span><b>{d.t1} → {d.t2}</b></div>
       <div className="card-foot">Datos de esta sesión de demo. Tu reporte de recorrido llegará más adelante.</div>
     </div>
   );
@@ -106,7 +106,7 @@ function Bubble({ m }) {
           {m.caption && <div className="cap">{m.caption}</div>}
         </div>
       )}
-      {m.type === "thermo" && <div className="bubble wide"><Thermometer nivel={m.nivel} /></div>}
+      {m.type === "thermo" && <div className="bubble wide"><Thermometer valor={m.valor} etiqueta={m.etiqueta} /></div>}
       {m.type === "avance" && <Avance d={m.data} />}
     </div>
   );
@@ -177,6 +177,21 @@ export default function Demo() {
       dur: Math.max(12, Math.min(59, Math.round(text.split(/\s+/).length / 2.3))),
     });
 
+    const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    let nombre = "";
+    const A = (t) => (nombre ? `${nombre}, ${t}` : cap(t));
+    const askThermo = async (prompt) => {
+      await say(prompt, 1000);
+      for (;;) {
+        const v = await ask({ options: [], text: true, placeholder: "Escribe un número del 1 al 10" });
+        said(v.text);
+        await sleep(300);
+        const n = parseInt(v.text, 10);
+        if (n >= 1 && n <= 10) return n;
+        await say("Escribe un número del 1 al 10, por favor. 🌡️", 600);
+      }
+    };
+
     try {
       // ---- 1. Llegada
       setNote("llegada");
@@ -184,20 +199,20 @@ export default function Demo() {
       await say(PRIVACIDAD, 1300);
       let ok = false;
       while (!ok) {
-        const v = await choose({ options: [{ label: "Sí, adelante", value: "si" }, { label: "Cuéntame más", value: "mas" }] });
+        const v = await choose({ options: [{ label: "¡Sí, adelante!", value: "si" }, { label: "Cuéntame más", value: "mas" }] });
         if (v.value === "si") ok = true;
-        else await say("Puedo acompañarte con prácticas cortas, conversar cuando necesites hablar y mostrarte tu avance. No sustituyo a un profesional de la salud; si algo lo requiere, te oriento hacia una persona. ¿Seguimos?", 1200);
+        else await say("Puedo acompañarte con prácticas cortas de meditación y respiración, conversar contigo cuando necesites hablar y mostrarte tu avance. No sustituyo a un profesional de la salud; si algo lo requiere, te oriento hacia una persona. ¿Seguimos?", 1300);
       }
       await say("¿Cómo te gustaría que te llame?");
       const nv = await ask({ options: [{ label: "Prefiero no decirlo", value: "skip" }], text: true, placeholder: "Escribe un nombre o apodo" });
-      let nombre = "";
       if (nv.text) { nombre = nv.text.slice(0, 24); said(nombre); } else said(nv.label);
       await sleep(350);
-      await say(nombre ? `Mucho gusto, ${nombre}.` : "Perfecto, seguimos sin nombre.");
+      await say(nombre ? `¡Hola, ${nombre}! 🙌` : "¡Hola! 🙌", 700);
+      await say(CONTINUAR_INICIO, 1200);
 
       // ---- 2. Índice EME
       setNote("indice");
-      await say("Para conocerte mejor te haré tres preguntas cortas. Responde según qué tan seguido te pasa.", 1000);
+      await say(A("para conocerte mejor te haré tres preguntas cortas. Responde según qué tan seguido te pasa."), 1100);
       const preguntas = shuffle(PREGUNTAS).slice(0, 3);
       const puntajes = [];
       for (const q of preguntas) {
@@ -205,99 +220,139 @@ export default function Demo() {
         const v = await choose({ options: RESPUESTAS.map((r) => ({ label: r.label, value: r.valor })), style: "list" });
         puntajes.push({ pilar: q.pilar, valor: v.value });
       }
-      await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás.", 900);
+      await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás. 🌱", 900);
 
       // ---- 3. Ruta a la medida
       setNote("ruta");
       const menor = puntajes.reduce((a, b) => (b.valor < a.valor ? b : a), puntajes[0]);
-      // en caso de empate gana el pilar que aparece primero en el orden del modelo
       const empatados = puntajes.filter((p) => p.valor === menor.valor).map((p) => p.pilar);
       const pilarId = ORDEN_PILARES.find((p) => empatados.includes(p));
       const P = PILARES[pilarId];
-      await say(`Tu ruta empieza por ${P.nombre} (${P.elemento}): ${P.lema}. Es el punto de partida, no una etiqueta; irá cambiando contigo.`, 1400);
-      await say("Dentro de este pilar puedes elegir el estado que quieres cultivar. Elige el que más te llame.", 1000);
-      const estados = shuffle(P.estados).slice(0, 3);
-      const ev = await choose({ options: estados.map((e) => ({ label: e, value: e })) });
-      const estado = ev.value;
-      await say("Antes de la práctica, un termómetro rápido: ¿cómo está tu energía ahora mismo?", 900);
-      const tv = await choose({ options: [{ label: "Baja", value: "Baja" }, { label: "Media", value: "Media" }, { label: "Alta", value: "Alta" }] });
-      const termo = tv.value;
-      await say({ type: "thermo", nivel: termo }, 500);
+      await say(`Tu ruta empieza por ${P.nombre}: ${P.lema}. Es un punto de partida, no una etiqueta; irá cambiando contigo.`, 1400);
+      await say("Ahora elige el estado que quieres fortalecer, alcanzar, o que consideres más importante para tu momento actual. Cualquiera que elijas será una herramienta útil en tu proceso.", 1400);
+      const estados = pilarId === "estabilidad" ? ["Amplitud", "Confianza", "Seguridad"] : shuffle(P.estados).slice(0, 3);
+      let estado;
+      for (;;) {
+        const ev = await choose({ options: estados.map((e) => ({ label: e, value: e })) });
+        estado = ev.value;
+        if (!ESTADOS_DEF[estado]) break;
+        await say(ESTADOS_DEF[estado], 1400);
+        await say("¿Deseas continuar con este estado o quieres cambiarlo?", 700);
+        const c = await choose({ options: [{ label: "Continuar", value: "ok" }, { label: "Quiero cambiarlo", value: "cambiar" }] });
+        if (c.value === "ok") break;
+        await say("Claro, elige de nuevo el que más te llame.", 600);
+      }
+      const t1 = await askThermo("Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu estado? (siendo 1 muy poco, y 10 muy alto) 🌡️");
+      await say({ type: "thermo", valor: t1, etiqueta: estado }, 500);
+      await say("¡Gracias por reconocerlo! Es importante saber cómo inicias.", 800);
 
       setNote("practica");
-      const pr = pick(PRACTICAS_RUTA[pilarId]);
-      const prTexto = pr.texto.replaceAll("{estado}", estado.toLowerCase());
-      await say(`Tu práctica de hoy se llama «${pr.titulo}». Te dejo una imagen y una nota de voz para hacerla.`, 1000);
-      await say({ type: "image", pilar: pilarId, hue: P.hue, seed: rnd(), src: media("imagenes", pilarId), caption: `${P.elemento} · ${estado}` }, 900);
-      await say(voiceMsg(prTexto, `ruta-${pilarId}`), 900);
-      let practicas = 0;
-      await choose({ options: [{ label: "Ya la hice", value: "ok" }, { label: "La haré después", value: "later" }] }).then((v) => { if (v.value === "ok") practicas++; });
-      await say(practicas ? "Bien hecho. Lo pequeño y constante es lo que cambia las cosas." : "Sin problema. Queda guardada para cuando puedas.", 900);
+      const prM = pick(PRACTICAS_RUTA[pilarId].meditacion).replaceAll("{estado}", estado.toLowerCase());
+      const prR = pick(PRACTICAS_RUTA[pilarId].respiracion);
+      await say(A("al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu estado 🌱\nEscucha. Si puedes hazlo con audífonos 🎧"), 1200);
+      await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
+      await say(voiceMsg(prM, `meditacion-${pilarId}`), 900);
+      await say("Cuando lo desees, toca el siguiente botón para que pasemos al ejercicio de respiración. 😮‍💨", 900);
+      await choose({ options: [{ label: "Continuar", value: "ok" }] });
+      await say({ type: "image", pilar: pilarId, hue: P.hue, seed: rnd(), src: media("imagenes", pilarId), caption: estado }, 900);
+      await say("Observa la imagen de hoy con toda tu atención durante un minuto. Guárdala en tu mente y en tu corazón mientras escuchas el próximo audio. 🎧", 1100);
+      await choose({ options: [{ label: "Continuar", value: "ok" }] });
+      await say(voiceMsg(prR, `respiracion-${pilarId}`), 900);
+      await say("Cuando termines avísame para continuar.", 700);
+      await choose({ options: [{ label: "Continuar", value: "ok" }] });
+      let practicas = 2;
 
-      // ---- 4. Escucha y Pulso
+      const t2 = await askThermo(`${A(`cuando seleccionaste estado, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu estado.`);
+      await say({ type: "thermo", valor: t2, etiqueta: estado }, 500);
+      await say(`Gracias${nombre ? ", " + nombre : ""}, reconocer el efecto de estas prácticas te ayuda a ser constante en tu proceso.`, 900);
+
+      // ---- 4. Escucha compasiva y Pulso
       setNote("escucha");
-      await say("Ahora, si quieres, cuéntame con tus palabras cómo te sientes hoy. Escribe lo que quieras; aquí no hay respuestas correctas.", 1200);
-      const cv = await ask({
-        options: [{ label: "Hoy me siento sin energía", value: "ejemplo" }],
-        text: true, placeholder: "Escribe cómo te sientes",
-      });
-      const contenido = cv.text || "Hoy me siento sin energía";
-      said(contenido);
-      setTyping(true);
-      let res;
-      try {
-        const r = await fetch("/api/chat", {
-          method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ texto: contenido, nombre, ruta: P.nombre }),
-        });
-        res = await r.json();
-      } catch {
-        res = { respuesta: "Gracias por contármelo. Estoy aquí contigo.", camino: "tormenta", riesgo: false };
-      }
-      alive();
-      setTyping(false);
-      const partes = String(res.respuesta).split(/\n+/).filter(Boolean);
-      if (!(res.riesgo && res.origen === "respaldo")) for (const p of partes) await say(p, 700);
       const caminosHechos = [];
-
-      if (res.riesgo) {
-        setNote("riesgo");
-        for (const d of DERIVACION) await say(d, 1300);
-        await choose({ options: [{ label: "Entendido", value: "ok" }] });
-      } else {
+      const recorrer = async (camino) => {
         setNote("pulso");
-        let camino = res.camino;
-        await say(`Tengo un camino de Pulso que puede ayudarte ahora: «${CAMINOS[camino].nombre}», ${CAMINOS[camino].frase}. Son tres prácticas cortas.`, 1300);
-        let v = await choose({ options: [{ label: "Empezar", value: "go" }, { label: "Prefiero otro", value: "otro" }, { label: "Ahora no", value: "no" }] });
-        if (v.value === "otro") {
-          const otros = Object.keys(CAMINOS).filter((c) => c !== camino);
-          await say("Claro. ¿Cuál te acompaña mejor hoy?", 700);
-          const o = await choose({ options: otros.map((c) => ({ label: `${CAMINOS[c].nombre}: ${CAMINOS[c].frase}`, value: c })) });
-          camino = o.value;
-          v = { value: "go" };
+        const C = CAMINOS[camino];
+        await say({ type: "image", camino, hue: C.hue, seed: rnd(), src: media("imagenes", `pulso-${camino}`), caption: `Camino ${C.nombre}` }, 800);
+        for (let i = 0; i < PRACTICAS_PULSO_ORDEN.length; i++) {
+          const pp = PRACTICAS_PULSO_ORDEN[i];
+          await say(`${i + 1} de 3 · ${pp.titulo}`, 600);
+          await say(voiceMsg(pick(PRACTICAS_PULSO[camino][pp.id]), `pulso-${pp.id}`), 800);
+          await say("Avísame cuando quieras continuar.", 600);
+          const s = await choose({ options: [{ label: "Listo", value: "ok" }, { label: "Saltar", value: "skip" }] });
+          if (s.value === "ok") practicas++;
         }
-        if (v.value === "go") {
-          const C = CAMINOS[camino];
-          await say({ type: "image", camino, hue: C.hue, seed: rnd(), src: media("imagenes", `pulso-${camino}`), caption: `Camino ${C.nombre}` }, 800);
-          for (let i = 0; i < PRACTICAS_PULSO_ORDEN.length; i++) {
-            const pp = PRACTICAS_PULSO_ORDEN[i];
-            await say(`${i + 1} de 3 · ${pp.titulo}`, 600);
-            await say(voiceMsg(pick(PRACTICAS_PULSO[camino][pp.id]), `pulso-${pp.id}`), 800);
-            const s = await choose({ options: [{ label: "Listo", value: "ok" }, { label: "Saltar", value: "skip" }] });
-            if (s.value === "ok") practicas++;
-          }
-          caminosHechos.push(C.nombre);
-          await say(`Quedó registrado que recorriste el camino ${C.nombre}. Solo queda como rastro tuyo; no mide cómo estás.`, 1100);
+        caminosHechos.push(C.nombre);
+        await say(`Quedó registrado que recorriste el camino ${C.nombre}. Solo queda como rastro tuyo; no mide cómo estás.`, 1100);
+      };
+
+      await say(A("poner en palabras lo que sientes puede ayudarte a comprender mejor lo que te pasa e identificar tus necesidades."), 1200);
+      await say("¿Te gustaría compartirlo?", 700);
+      const sh = await choose({ options: [{ label: "¡Sí!", value: "si" }, { label: "No, continuemos", value: "no" }] });
+      let riesgo = false;
+
+      if (sh.value === "si") {
+        await say("Este es un espacio libre de juicios. Escribe lo que dirían tus emociones si pudieran hablar. ✏️", 1000);
+        const cv = await ask({
+          options: [{ label: "Hoy me siento sin energía", value: "ejemplo" }],
+          text: true, placeholder: "Escribe cómo te sientes",
+        });
+        const contenido = cv.text || "Hoy me siento sin energía";
+        said(contenido);
+        setTyping(true);
+        let res;
+        try {
+          const r = await fetch("/api/chat", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ texto: contenido, nombre, ruta: P.nombre }),
+          });
+          res = await r.json();
+        } catch {
+          res = { respuesta: "Gracias por contármelo. Estoy aquí contigo.", camino: "tormenta", riesgo: false };
+        }
+        alive();
+        setTyping(false);
+        const partes = String(res.respuesta).split(/\n+/).filter(Boolean);
+        riesgo = Boolean(res.riesgo);
+        if (!(riesgo && res.origen === "respaldo")) for (const p of partes) await say(p, 700);
+
+        if (riesgo) {
+          setNote("riesgo");
+          for (const d of DERIVACION) await say(d, 1300);
+          await choose({ options: [{ label: "Entendido", value: "ok" }] });
         } else {
-          await say("De acuerdo. Pulso está aquí cuando lo necesites.", 700);
+          setNote("pulso");
+          let camino = res.camino;
+          await say(`Tengo un camino de Pulso que puede ayudarte ahora: «${CAMINOS[camino].nombre}», ${CAMINOS[camino].frase}. Son tres prácticas cortas.`, 1300);
+          let v = await choose({ options: [{ label: "Empezar", value: "go" }, { label: "Prefiero otro", value: "otro" }, { label: "Ahora no", value: "no" }] });
+          if (v.value === "otro") {
+            const otros = Object.keys(CAMINOS).filter((c) => c !== camino);
+            await say("Claro. ¿Cuál te acompaña mejor hoy?", 700);
+            const o = await choose({ options: otros.map((c) => ({ label: `${CAMINOS[c].nombre}: ${CAMINOS[c].frase}`, value: c })) });
+            camino = o.value;
+            v = { value: "go" };
+          }
+          if (v.value === "go") await recorrer(camino);
+          else await say("De acuerdo. Pulso está aquí cuando lo necesites.", 700);
+        }
+      } else {
+        await say(`Muy bien${nombre ? " " + nombre : ""}.`, 600);
+        setNote("pulso");
+        await say("Si en algún momento del día lo necesitas, tengo Pulso: caminos cortos para el momento que estés viviendo. ¿Quieres conocerlo?", 1300);
+        const pv = await choose({ options: [{ label: "Sí, mostrar", value: "si" }, { label: "Ahora no", value: "no" }] });
+        if (pv.value === "si") {
+          await say("Elige el que más se parezca a tu momento.", 700);
+          const o = await choose({ options: Object.keys(CAMINOS).map((c) => ({ label: `${CAMINOS[c].nombre}: ${CAMINOS[c].frase}`, value: c })), style: "list" });
+          await recorrer(o.value);
         }
       }
 
       // ---- 5. Avance
       setNote("avance");
+      await say("Cuando aparezca el cansancio, un pensamiento inquieto o malestar, puedes volver a estos ejercicios y sostener el estado que elegiste.\n\n✨ Escucha la meditación\n🌱 Haz la respiración\n🖼️ Enfoca tu atención en la imagen", 1400);
       await say("Te muestro tu recorrido de hoy.", 800);
-      await say({ type: "avance", data: { nombre, pilar: P.nombre, estado, practicas, caminos: caminosHechos, termo } }, 900);
-      await say("Mañana te espero con la siguiente práctica de tu ruta.", 900);
+      await say({ type: "avance", data: { nombre, pilar: P.nombre, estado, practicas, caminos: caminosHechos, t1, t2 } }, 900);
+      await say("¡Gracias por dedicarte este tiempo de calidad! Te espero en la noche 🌚", 900);
+      await say("eme está contigo. 🩵", 700);
       await choose({ options: [{ label: "Volver a empezar", value: "again" }] });
       start();
     } catch (e) {

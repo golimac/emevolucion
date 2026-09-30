@@ -38,7 +38,7 @@ button { font: inherit; cursor: pointer; }
 .day { align-self: center; font-size: 12px; color: var(--muted); background: rgba(255,255,255,.6); padding: 3px 10px; border-radius: 10px; margin-bottom: 6px; }
 .msg { display: flex; }
 .msg.user { justify-content: flex-end; }
-.bubble { max-width: 82%; padding: 9px 12px; border-radius: 4px 14px 14px 14px; background: var(--white); font-size: 15px; line-height: 1.42; box-shadow: 0 1px 1px rgba(0,0,0,.06); animation: pop .18s ease-out; }
+.bubble { max-width: 82%; padding: 9px 12px; border-radius: 4px 14px 14px 14px; background: var(--white); font-size: 15px; line-height: 1.42; white-space: pre-line; box-shadow: 0 1px 1px rgba(0,0,0,.06); animation: pop .18s ease-out; }
 .user .bubble { background: var(--user); border-radius: 14px 4px 14px 14px; }
 .bubble.wide { min-width: 250px; }
 .bubble.img { width: 82%; padding: 6px; }

@@ -12,13 +12,14 @@ Ejemplo:
     "pulso-tormenta": ["/media/tormenta-1.png"]
   },
   "audios": {
-    "ruta-estabilidad": ["/media/ruta-estabilidad-1.mp3"],
+    "meditacion-estabilidad": ["/media/meditacion-estabilidad-1.mp3"],
+    "respiracion-estabilidad": ["/media/respiracion-estabilidad-1.mp3"],
     "pulso-respirar": ["/media/respirar-1.mp3"]
   }
 }
 ```
 
 Claves de imágenes: `estabilidad`, `plenitud`, `crecimiento`, `integracion`, `claridad`, `pulso-tormenta`, `pulso-calma`, `pulso-perdida`.
-Claves de audios: `ruta-estabilidad`, `ruta-plenitud`, `ruta-crecimiento`, `ruta-integracion`, `ruta-claridad`, `pulso-respirar`, `pulso-soltar`, `pulso-escuchar`.
+Claves de audios: `meditacion-<pilar>` y `respiracion-<pilar>` (con estabilidad, plenitud, crecimiento, integracion o claridad), más `pulso-respirar`, `pulso-soltar` y `pulso-escuchar`.
 
 Lo que no tenga archivo usa una imagen generada o una nota de voz simulada con su texto.

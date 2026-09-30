@@ -95,12 +95,11 @@ export function CaminoArt({ camino, hue, seed }) {
   );
 }
 
-export function Thermometer({ nivel }) {
-  const pct = nivel === "Baja" ? 25 : nivel === "Media" ? 55 : 85;
+export function Thermometer({ valor, etiqueta }) {
   return (
     <div className="thermo">
-      <div className="thermo-bar"><div className="thermo-fill" style={{ width: pct + "%" }} /></div>
-      <div className="thermo-lbl">Energía: {nivel.toLowerCase()}</div>
+      <div className="thermo-bar"><div className="thermo-fill" style={{ width: valor * 10 + "%" }} /></div>
+      <div className="thermo-lbl">Termómetro · {etiqueta}: {valor} de 10</div>
     </div>
   );
 }
