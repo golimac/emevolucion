@@ -225,7 +225,12 @@ export default function Demo() {
       await sleep(450);
     };
     const scene = (k) => { setNote(k); };
-    const bts = async (d) => {
+    const esperarContinuar = async () => {
+      if (!btsRef.current) return;
+      if (typeof window !== "undefined" && window.matchMedia("(min-width: 901px)").matches) await ask({ options: [{ label: "Continuar", value: "ok" }] });
+      alive();
+    };
+    const bts = async (d, sinEspera = false) => {
       if (!btsRef.current) return;
       alive();
       // El panel solo se lee en pantallas anchas; en celular no se espera.
@@ -240,6 +245,7 @@ export default function Demo() {
       }
       setPanel((p) => (p ? { ...p, paso: d.pasos.length, listo: true } : p));
       setMessages((x) => x.filter((m) => m.id !== id));
+      if (sinEspera) { alive(); return; }
       if (wide) await ask({ options: [{ label: "Continuar", value: "ok" }] });
       else await sleep(600);
       alive();
@@ -468,8 +474,9 @@ export default function Demo() {
           pasos: ["Leyendo el mensaje", "Detectando el tono emocional", "Revisando señales de riesgo", riesgo ? "Señal de riesgo detectada" : "Sin señales de riesgo", riesgo ? "Preparando la derivación a una persona" : "Eligiendo un camino de Pulso"],
           resultado: `Tono: ${res.sentimiento || "neutro"} · ${riesgo ? "Riesgo: derivar a una persona" : `Riesgo: sin señales · Camino: ${CAMINOS[res.camino]?.nombre || "Tormenta"}`}`,
           alerta: riesgo,
-        });
+        }, true);
         if (!(riesgo && res.origen === "respaldo")) for (const p of partes) await say(p, 700);
+        await esperarContinuar();
 
         if (riesgo) {
           scene("riesgo");
