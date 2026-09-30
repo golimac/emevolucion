@@ -119,6 +119,21 @@ function Proc({ m }) {
   );
 }
 
+function Memoria({ items }) {
+  if (!items.length) return null;
+  return (
+    <div className="mem">
+      <div className="mem-tag">Lo que eme va aprendiendo</div>
+      {items.map((it) => (
+        <div className="mem-row" key={it.k + ":" + it.n}>
+          <span className="mem-k">{it.k}</span>
+          <span className="mem-v">{it.v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Detalle({ d }) {
   if (!d) return null;
   return (
@@ -178,6 +193,7 @@ export default function Demo() {
   const [showNote, setShowNote] = useState(false);
   const [btsOn, setBtsOn] = useState(true);
   const [panel, setPanel] = useState(null);
+  const [memoria, setMemoria] = useState([]);
   const btsRef = useRef(true);
   const [draft, setDraft] = useState("");
   const [manifest, setManifest] = useState({});
@@ -209,7 +225,7 @@ export default function Demo() {
 
   const start = useCallback(async () => {
     const my = ++run.current;
-    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null);
+    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null); setMemoria([]);
     const alive = () => { if (run.current !== my) throw new Error("cancel"); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)).then(alive);
     const push = (m) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "eme", ...m }]); };
@@ -225,6 +241,11 @@ export default function Demo() {
       await sleep(450);
     };
     const scene = (k) => { setNote(k); };
+    // Memoria visible: lo que eme va aprendiendo de la persona durante la sesión.
+    const aprende = (k, v) => setMemoria((m) => (m.some((x) => x.k === k) ? m.map((x) => (x.k === k ? { ...x, v, n: x.n + 1 } : x)) : [...m, { k, v, n: 0 }]));
+    const generar = (tipo, datos) => fetch("/api/practica", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo, ...datos }),
+    }).then((r) => r.json()).catch(() => null);
     const esperarContinuar = async () => {
       if (!btsRef.current) return;
       if (typeof window !== "undefined" && window.matchMedia("(min-width: 901px)").matches) await ask({ options: [{ label: "Continuar", value: "ok" }] });
@@ -299,7 +320,7 @@ export default function Demo() {
       }
       await say("¿Cómo te gustaría que te llame?");
       const nv = await ask({ options: [{ label: "Prefiero no decirlo", value: "skip" }], text: true, placeholder: "Escribe un nombre o apodo" });
-      if (nv.text) { nombre = nv.text.slice(0, 24); said(nombre); } else said(nv.label);
+      if (nv.text) { nombre = nv.text.slice(0, 24); said(nombre); aprende("Nombre", nombre); } else said(nv.label);
       await sleep(350);
       await say(`Me alegra que estés aquí${nombre ? ", " + nombre : ""}. Vamos a empezar por reconocer cómo estás hoy, para que todo lo que sigue parta de ahí.`, 1300);
 
@@ -349,6 +370,7 @@ export default function Demo() {
         barras: puntajes.map((p) => ({ label: PILARES[p.pilar].nombre, valor: p.valor, max: 3, destacado: p.pilar === pilarId })),
         resultado: "La sugerencia es un punto de partida: la persona decide el estado que quiere cultivar.",
       });
+      aprende("Punto de partida", `${P.nombre} · ${Math.round((puntajes.reduce((a, b) => a + b.valor, 0) / puntajes.length / 3) * 100)}% de bienestar`);
       await say("Con lo que me cuentas, ya tengo una propuesta para comenzar tu proceso.", 1400);
       await say("Ahora elige el estado que quieres fortalecer, alcanzar, o que consideres más importante para tu momento actual. Cualquiera que elijas será una herramienta útil en tu proceso.", 1400);
       const estados = pilarId === "estabilidad" ? ["Amplitud", "Confianza", "Seguridad"] : shuffle(P.estados).slice(0, 3);
@@ -363,7 +385,9 @@ export default function Demo() {
         if (c.value === "ok") break;
         await say("Claro, elige de nuevo el que más te llame.", 600);
       }
+      aprende("Estado que cultiva", estado);
       const t1 = await askThermo(`Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu **${estado.toLowerCase()}**? (siendo 1 muy poco, y 10 muy alto) 🌡️`);
+      aprende("Termómetro inicial", `${t1} de 10`);
       await say({ type: "thermo", valor: t1, etiqueta: estado }, 500);
       await say("¡Gracias por reconocerlo! Es importante saber cómo inicias.", 800);
       await bts({
@@ -380,15 +404,22 @@ export default function Demo() {
       scene("practica");
       const prM = pick(PRACTICAS_RUTA[pilarId].meditacion).replaceAll("{estado}", estado.toLowerCase());
       const prR = pick(PRACTICAS_RUTA[pilarId].respiracion);
+      // eme escribe las dos prácticas en vivo; si la API no responde, salen variantes preparadas.
+      const datosP = { estado, pilar: pilarId, nombre, t1 };
+      const genM = generar("meditacion", datosP);
+      const genR = generar("respiracion", datosP);
       await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}**.\n🌱\n\nEscucha.\nSi puedes hazlo con audífonos. 🎧`), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
         titulo: "Generando la meditación",
         explica: "eme prepara una meditación para esta persona, a partir de su estado y de cómo llegó hoy.",
         pasos: ["Leyendo el estado y el termómetro", "Eligiendo la metáfora y la música del día", "Escribiendo el guion de la meditación", "Sintetizando la voz de eme"],
-        nota: "Simulado: en la demo la pieza sale de variantes preparadas o de tus propios archivos.",
+        nota: "El texto lo escribe eme en este momento para esta persona. La voz de la demo es simulada.",
       });
-      await say(voiceMsg(prM, `meditacion-${pilarId}`), 900);
+      const gM = await genM;
+      alive();
+      await say(voiceMsg(gM?.texto || prM, gM?.texto ? null : `meditacion-${pilarId}`), 900);
+      aprende("Prácticas de hoy", "Meditación");
       await say("Cuando lo desees, toca el siguiente botón para que pasemos al ejercicio de respiración. 😮‍💨", 900);
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       await bts({
@@ -398,20 +429,25 @@ export default function Demo() {
         nota: "Simulado: la imagen de la demo es una composición generada al momento.",
       });
       await say({ type: "image", pilar: pilarId, hue: P.hue, seed: rnd(), src: media("imagenes", pilarId), caption: estado }, 900);
+      aprende("Prácticas de hoy", "Meditación, imagen");
       await say("Observa la imagen de hoy con toda tu atención durante un minuto. Guárdala en tu mente y en tu corazón mientras escuchas el próximo audio. 🎧", 1100);
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       await bts({
         titulo: "Generando la respiración",
-        explica: "eme selecciona la respiración del día y su afirmación de cierre.",
-        pasos: ["Tomando el día de la semana", "Eligiendo la afirmación de cierre", "Sintetizando la voz de eme"],
-        nota: "Simulado: en la demo sale de variantes preparadas o de tus propios archivos.",
+        explica: "eme escribe una respiración distinta a la meditación: es una instrucción del cuerpo, con ritmo y una afirmación de cierre.",
+        pasos: ["Leyendo el estado y el termómetro", "Escribiendo el ritmo de la respiración", "Eligiendo la afirmación de cierre", "Sintetizando la voz de eme"],
+        nota: "El texto lo escribe eme en este momento. La voz de la demo es simulada.",
       });
-      await say(voiceMsg(prR, `respiracion-${pilarId}`), 900);
+      const gR = await genR;
+      alive();
+      await say(voiceMsg(gR?.texto || prR, gR?.texto ? null : `respiracion-${pilarId}`), 900);
+      aprende("Prácticas de hoy", "Meditación, imagen, respiración");
       await say("Cuando termines avísame para continuar.", 700);
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       let practicas = 2;
 
       const t2 = await askThermo(`${A(`cuando seleccionaste tu **${estado.toLowerCase()}**, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu **${estado.toLowerCase()}**.`);
+      aprende("Termómetro", `${t1} → ${t2}`);
       await say({ type: "thermo", valor: t2, etiqueta: estado }, 500);
       await say(`Gracias${nombre ? ", " + nombre : ""}, reconocer el efecto de estas prácticas te ayuda a ser constante en tu proceso.`, 900);
 
@@ -437,6 +473,7 @@ export default function Demo() {
           if (s.value === "ok") practicas++;
         }
         caminosHechos.push(C.nombre);
+        aprende("Práctica complementaria", `${C.nombre} (completada)`);
         await say("Quedó registrada esta práctica en tu proceso. Solo queda como rastro tuyo; no mide cómo estás.", 1100);
       };
 
@@ -454,6 +491,7 @@ export default function Demo() {
         });
         const contenido = cv.text || frase;
         said(contenido);
+        aprende("Lo que contó", `«${contenido.length > 60 ? contenido.slice(0, 57) + "…" : contenido}»`);
         setTyping(true);
         let res;
         try {
@@ -469,6 +507,7 @@ export default function Demo() {
         setTyping(false);
         const partes = String(res.respuesta).split(/\n+/).filter(Boolean);
         riesgo = Boolean(res.riesgo);
+        aprende("Tono de lo que contó", { bienestar: "Bienestar", neutro: "Neutro", malestar: "Malestar" }[res.sentimiento] || "Neutro");
         await bts({
           titulo: "Leyendo lo que la persona escribió",
         explica: "eme lee el tono y las señales del mensaje para decidir cómo responder y qué camino de Pulso ofrecer. La persona solo ve la respuesta.",
@@ -543,6 +582,7 @@ export default function Demo() {
             <b>{N.titulo}</b>
             <p>{N.texto}</p>
             <Detalle d={panel} />
+            <Memoria items={memoria} />
           </div>
         )}
         <div className="chat" ref={scroller}>
@@ -577,6 +617,7 @@ export default function Demo() {
         <h2 key={note} className="titulo-nota" aria-label={N.titulo}><Letras texto={N.titulo} /></h2>
         <p>{N.texto}</p>
         <Detalle d={panel} />
+        <Memoria items={memoria} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
     </div>

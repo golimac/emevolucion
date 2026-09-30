@@ -1,33 +1,9 @@
 import { clasificarLocal, RESPUESTAS_RESPALDO, pick } from "../../../lib/content";
+import { allow } from "../../../lib/limite";
 
 export const runtime = "nodejs";
 
-// Límites de uso. En memoria: sirven como freno razonable para una demo,
-// pero se reinician cuando Vercel reinicia la función. El freno definitivo
-// es el límite de gasto que se configura en la consola de Anthropic.
-const IP_LIMIT = Number(process.env.DEMO_IP_LIMIT || 12);
-const GLOBAL_LIMIT = Number(process.env.DEMO_GLOBAL_LIMIT || 300);
 const MAX_CHARS = 500;
-
-const store = globalThis.__emeStore || (globalThis.__emeStore = { day: "", global: 0, ips: new Map() });
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function allow(ip) {
-  const d = today();
-  if (store.day !== d) {
-    store.day = d;
-    store.global = 0;
-    store.ips = new Map();
-  }
-  const n = store.ips.get(ip) || 0;
-  if (n >= IP_LIMIT || store.global >= GLOBAL_LIMIT) return false;
-  store.ips.set(ip, n + 1);
-  store.global += 1;
-  return true;
-}
 
 const SYSTEM = `Eres eme, el acompañamiento de bienestar de Sentido EME (Colombia). Eres una guía digital creada por Sentido EME. Si te preguntan directamente si eres una persona, aclaras que no lo eres, con sinceridad y sin dar rodeos. Hablas en femenino ("estoy convencida", "te escucho").
 Voz de eme: cálida, serena, invitadora y cercana, con trato de "tú" y español latinoamericano neutro. Reconoces lo que la persona vive antes de proponer nada. Normalizas los altibajos ("el camino hacia el bienestar no es lineal"), invitas a la autocompasión y a apoyarse en otras personas, y sostienes la esperanza sin ingenuidad. Usas frases como "es completamente normal", "sé amable contigo", "un paso a la vez", "este es un espacio libre de juicios".
