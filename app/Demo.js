@@ -13,6 +13,19 @@ function Rich({ text }) {
   return String(text).split(/(\beme\b)/).map((part, i) => (part === "eme" ? <strong key={i}>eme</strong> : part));
 }
 
+// Título con aparición letra por letra (solo opacidad y desenfoque, sin cambiar color ni tamaño).
+function Letras({ texto }) {
+  let n = 0;
+  return texto.split(" ").map((w, wi) => (
+    <span key={wi} className="pal" aria-hidden="true">
+      {Array.from(w).map((ch, ci) => (
+        <span key={ci} className="let" style={{ animationDelay: `${n++ * 35}ms` }}>{ch}</span>
+      ))}
+      {" "}
+    </span>
+  ));
+}
+
 function Waveform({ seed, progress }) {
   const bars = [];
   let s = seed || 7;
@@ -561,7 +574,7 @@ export default function Demo() {
       </div>
       <aside className="side">
         <div className="tag">Qué estás viendo</div>
-        <h2 key={note} className="titulo-nota"><span>{N.titulo}</span></h2>
+        <h2 key={note} className="titulo-nota" aria-label={N.titulo}><Letras texto={N.titulo} /></h2>
         <p>{N.texto}</p>
         <Detalle d={panel} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
