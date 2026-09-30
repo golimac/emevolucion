@@ -17,11 +17,13 @@ function Rich({ text }) {
 function Letras({ texto }) {
   let n = 0;
   return texto.split(" ").map((w, wi) => (
-    <span key={wi} className="pal" aria-hidden="true">
-      {Array.from(w).map((ch, ci) => (
-        <span key={ci} className="let" style={{ animationDelay: `${n++ * 35}ms` }}>{ch}</span>
-      ))}
-      {" "}
+    <span key={wi}>
+      {wi > 0 && " "}
+      <span className="pal" aria-hidden="true">
+        {Array.from(w).map((ch, ci) => (
+          <span key={ci} className="let" style={{ animationDelay: `${n++ * 35}ms` }}>{ch}</span>
+        ))}
+      </span>
     </span>
   ));
 }
