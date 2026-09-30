@@ -10,7 +10,9 @@ const rnd = () => Math.floor(Math.random() * 1e9);
 
 // Cada mención de "eme" (minúscula) va en negrilla dentro de los mensajes del bot.
 function Rich({ text }) {
-  return String(text).split(/(\beme\b)/).map((part, i) => (part === "eme" ? <strong key={i}>eme</strong> : part));
+  return String(text).split(/(\*\*[^*]+\*\*|\beme\b)/).map((part, i) =>
+    part === "eme" ? <strong key={i}>eme</strong> : /^\*\*[^*]+\*\*$/.test(part) ? <strong key={i}>{part.slice(2, -2)}</strong> : part
+  );
 }
 
 // Título con aparición letra por letra (solo opacidad y desenfoque, sin cambiar color ni tamaño).
@@ -354,7 +356,7 @@ export default function Demo() {
         if (c.value === "ok") break;
         await say("Claro, elige de nuevo el que más te llame.", 600);
       }
-      const t1 = await askThermo(`Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu ${estado.toLowerCase()}? (siendo 1 muy poco, y 10 muy alto) 🌡️`);
+      const t1 = await askThermo(`Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu **${estado.toLowerCase()}**? (siendo 1 muy poco, y 10 muy alto) 🌡️`);
       await say({ type: "thermo", valor: t1, etiqueta: estado }, 500);
       await say("¡Gracias por reconocerlo! Es importante saber cómo inicias.", 800);
       await bts({
@@ -371,7 +373,7 @@ export default function Demo() {
       scene("practica");
       const prM = pick(PRACTICAS_RUTA[pilarId].meditacion).replaceAll("{estado}", estado.toLowerCase());
       const prR = pick(PRACTICAS_RUTA[pilarId].respiracion);
-      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu ${estado.toLowerCase()} 🌱\nEscucha. Si puedes hazlo con audífonos 🎧`), 1200);
+      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}** 🌱\nEscucha. Si puedes hazlo con audífonos 🎧`), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
         titulo: "Generando la meditación",
@@ -402,7 +404,7 @@ export default function Demo() {
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       let practicas = 2;
 
-      const t2 = await askThermo(`${A(`cuando seleccionaste tu ${estado.toLowerCase()}, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu ${estado.toLowerCase()}.`);
+      const t2 = await askThermo(`${A(`cuando seleccionaste tu **${estado.toLowerCase()}**, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu **${estado.toLowerCase()}**.`);
       await say({ type: "thermo", valor: t2, etiqueta: estado }, 500);
       await say(`Gracias${nombre ? ", " + nombre : ""}, reconocer el efecto de estas prácticas te ayuda a ser constante en tu proceso.`, 900);
 
@@ -501,7 +503,7 @@ export default function Demo() {
 
       // ---- 5. Avance
       scene("avance");
-      await say(`Cuando aparezca el cansancio, un pensamiento inquieto o malestar, puedes volver a estos ejercicios y sostener tu ${estado.toLowerCase()}.\n\n✨ Escucha la meditación\n🌱 Haz la respiración\n🖼️ Enfoca tu atención en la imagen`, 1400);
+      await say(`Cuando aparezca el cansancio, un pensamiento inquieto o malestar, puedes volver a estos ejercicios y sostener tu **${estado.toLowerCase()}**.\n\n✨ Escucha la meditación\n🌱 Haz la respiración\n🖼️ Enfoca tu atención en la imagen`, 1400);
       await bts({
         titulo: "Actualizando la ruta",
         explica: "eme guarda el registro de hoy y prepara la continuación de la ruta para mañana.",
