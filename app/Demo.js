@@ -373,7 +373,7 @@ export default function Demo() {
       scene("practica");
       const prM = pick(PRACTICAS_RUTA[pilarId].meditacion).replaceAll("{estado}", estado.toLowerCase());
       const prR = pick(PRACTICAS_RUTA[pilarId].respiracion);
-      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}** 🌱\nEscucha. Si puedes hazlo con audífonos 🎧`), 1200);
+      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}**.\n🌱\n\nEscucha.\nSi puedes hazlo con audífonos. 🎧`), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
         titulo: "Generando la meditación",
