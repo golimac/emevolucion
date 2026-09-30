@@ -8,6 +8,11 @@ import {
 
 const rnd = () => Math.floor(Math.random() * 1e9);
 
+// Cada mención de "eme" (minúscula) va en negrilla dentro de los mensajes del bot.
+function Rich({ text }) {
+  return String(text).split(/(\beme\b)/).map((part, i) => (part === "eme" ? <strong key={i}>eme</strong> : part));
+}
+
 function Waveform({ seed, progress }) {
   const bars = [];
   let s = seed || 7;
@@ -69,7 +74,7 @@ function Voice({ m }) {
       </div>
       <button className="link" onClick={() => setOpen(!open)}>{open ? "Ocultar texto" : "Ver texto"}</button>
       {!m.src && <span className="tiny"> · demo sin audio real</span>}
-      {open && <p className="transcript">{m.transcript}</p>}
+      {open && <p className="transcript"><Rich text={m.transcript} /></p>}
     </div>
   );
 }
@@ -92,7 +97,7 @@ function Bubble({ m }) {
   if (m.from === "user") return <div className="msg user"><div className="bubble">{m.text}</div></div>;
   return (
     <div className="msg eme">
-      {m.type === "text" && <div className="bubble">{m.text}</div>}
+      {m.type === "text" && <div className="bubble"><Rich text={m.text} /></div>}
       {m.type === "voice" && <div className="bubble wide"><Voice m={m} /></div>}
       {m.type === "image" && (
         <div className="bubble img">
