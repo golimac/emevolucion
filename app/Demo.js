@@ -133,23 +133,6 @@ function Escribiendo({ texto }) {
   return <span ref={ref}>{partes.slice(0, n).join("")}{n < partes.length && <i className="cursor" />}</span>;
 }
 
-function Escritura({ g }) {
-  return (
-    <div className="esc">
-      <div className="esc-tag"><span className={"dot" + (g.texto ? " off" : "")} />eme escribe: {g.titulo}</div>
-      <div className="esc-datos">{g.datos.map((d) => <span key={d} className="esc-chip">{d}</span>)}</div>
-      <div className="esc-txt">{g.texto ? <Escribiendo texto={g.texto} /> : <span className="esc-espera">Escribiendo…</span>}</div>
-      {g.alt && (
-        <div className="esc-alt">
-          <div className="esc-datos">{g.alt.datos.map((d) => <span key={d} className="esc-chip alt">{d}</span>)}</div>
-          <div className="esc-txt">{g.alt.texto ? <Escribiendo texto={g.alt.texto} /> : <span className="esc-espera">Escribiendo…</span>}</div>
-        </div>
-      )}
-      {g.texto && !g.alt && <button className="esc-btn" onClick={g.onOtro}>Ver cómo cambiaría con otro estado</button>}
-    </div>
-  );
-}
-
 function Memoria({ items }) {
   const ref = useRef(null);
   useEffect(() => { ref.current?.lastElementChild?.scrollIntoView({ block: "nearest" }); }, [items]);
@@ -194,6 +177,13 @@ function Detalle({ d }) {
       )}
       {d.listo && d.resultado && <div className="det-res">{d.resultado}</div>}
       {d.listo && d.nota && <div className="det-note">{d.nota}</div>}
+      {d.listo && d.gen && !d.gen.alt && <button className="esc-btn" onClick={d.gen.onOtro}>Ver cómo cambiaría con otro estado</button>}
+      {d.gen?.alt && (
+        <div className="esc-alt">
+          <div className="esc-datos">{d.gen.alt.datos.map((x) => <span key={x} className="esc-chip alt">{x}</span>)}</div>
+          <div className="esc-txt">{d.gen.alt.texto ? <Escribiendo texto={d.gen.alt.texto} /> : <span className="esc-espera">Escribiendo…</span>}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -204,6 +194,7 @@ function Bubble({ m }) {
   return (
     <div className="msg eme">
       {m.type === "text" && <div className="bubble"><Rich text={m.text} /></div>}
+      {m.type === "escribe" && <div className="bubble"><Escribiendo texto={m.texto} /></div>}
       {m.type === "voice" && <div className="bubble wide"><Voice m={m} /></div>}
       {m.type === "image" && (
         <div className="bubble img reveal">
@@ -227,7 +218,6 @@ export default function Demo() {
   const [btsOn, setBtsOn] = useState(true);
   const [panel, setPanel] = useState(null);
   const [memoria, setMemoria] = useState([]);
-  const [gens, setGens] = useState([]);
   const btsRef = useRef(true);
   const [draft, setDraft] = useState("");
   const [manifest, setManifest] = useState({});
@@ -259,7 +249,7 @@ export default function Demo() {
 
   const start = useCallback(async () => {
     const my = ++run.current;
-    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null); setMemoria([]); setGens([]);
+    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null); setMemoria([]);
     const alive = () => { if (run.current !== my) throw new Error("cancel"); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)).then(alive);
     const push = (m) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "eme", ...m }]); };
@@ -277,23 +267,27 @@ export default function Demo() {
     const scene = (k) => { setNote(k); };
     // Memoria visible: lo que eme va aprendiendo de la persona durante la sesión.
     const aprende = (k, v) => setMemoria((m) => (m.some((x) => x.k === k) ? m.map((x) => (x.k === k ? { ...x, v, n: x.n + 1 } : x)) : [...m, { k, v, n: 0 }]));
-    const nuevaGen = (titulo, tipo, datos) => {
-      const id = ++idc.current;
-      const lineas = [`Estado: ${datos.estado}`, `Termómetro inicial: ${datos.t1} de 10`, datos.nombre ? `Nombre: ${datos.nombre}` : null].filter(Boolean);
+    // Muestra la otra versión de la práctica dentro del panel "Detrás de escena".
+    const ofrecerOtro = (tipo, datos) => {
+      const key = rnd();
       const onOtro = async () => {
         const pilarAlt = pick(ORDEN_PILARES.filter((p) => p !== datos.pilar));
         const otro = pick(PILARES[pilarAlt].estados);
         const t1b = datos.t1 <= 5 ? 9 : 2;
         const datosAlt = [`Estado: ${otro}`, `Termómetro inicial: ${t1b} de 10`];
-        setGens((x) => x.map((g) => (g.id === id ? { ...g, alt: { datos: datosAlt, texto: null } } : g)));
+        const poner = (alt) => setPanel((p) => (p?.gen?.key === key ? { ...p, gen: { ...p.gen, alt } } : p));
+        poner({ datos: datosAlt, texto: null });
         const r = await generar(tipo, { ...datos, pilar: pilarAlt, estado: otro, t1: t1b });
         const variante = pick(PRACTICAS_RUTA[pilarAlt][tipo]).replaceAll("{estado}", otro.toLowerCase());
-        setGens((x) => x.map((g) => (g.id === id ? { ...g, alt: { datos: datosAlt, texto: r?.texto || variante } } : g)));
+        poner({ datos: datosAlt, texto: r?.texto || variante });
       };
-      setGens((x) => [...x, { id, titulo, datos: lineas, texto: null, onOtro }]);
-      return id;
+      setPanel((p) => (p ? { ...p, gen: { key, alt: null, onOtro } } : p));
     };
-    const textoGen = (id, texto) => setGens((x) => x.map((g) => (g.id === id ? { ...g, texto } : g)));
+    // La práctica se escribe en el chat, palabra por palabra, antes de llegar como audio.
+    const escribirPractica = async (texto) => {
+      await say({ type: "escribe", texto }, 600);
+      await sleep(Math.ceil(String(texto).split(/(\s+)/).length / 2) * 45 + 600);
+    };
     const generar = (tipo, datos) => fetch("/api/practica", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo, ...datos }),
     }).then((r) => r.json()).catch(() => null);
@@ -459,8 +453,6 @@ export default function Demo() {
       const datosP = { estado, pilar: pilarId, nombre, t1 };
       const genM = generar("meditacion", datosP);
       const genR = generar("respiracion", datosP);
-      let gidM = null;
-      let gidR = null;
       await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}**.\n\nEscucha.\nSi puedes hazlo con audífonos. 🎧`), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
@@ -469,10 +461,10 @@ export default function Demo() {
         pasos: ["Leyendo el estado y el termómetro", "Eligiendo la metáfora y la música del día", "Escribiendo el guion de la meditación", "Sintetizando la voz de eme"],
         nota: "El texto lo escribe eme para esta persona; si la IA no responde, la demo usa variantes preparadas. La voz es simulada.",
       });
-      gidM = nuevaGen("la meditación", "meditacion", datosP);
       const gM = await genM;
       alive();
-      textoGen(gidM, gM?.texto || prM);
+      ofrecerOtro("meditacion", datosP);
+      await escribirPractica(gM?.texto || prM);
       await say(voiceMsg(gM?.texto || prM, gM?.texto ? null : `meditacion-${pilarId}`), 900);
       aprende("Prácticas de hoy", "Meditación");
       await say("Cuando lo desees, toca el siguiente botón para que pasemos al ejercicio de respiración. 😮‍💨", 900);
@@ -493,10 +485,10 @@ export default function Demo() {
         pasos: ["Leyendo el estado y el termómetro", "Escribiendo el ritmo de la respiración", "Eligiendo la afirmación de cierre", "Sintetizando la voz de eme"],
         nota: "El texto lo escribe eme para esta persona; si la IA no responde, la demo usa variantes preparadas. La voz es simulada.",
       });
-      gidR = nuevaGen("la respiración", "respiracion", datosP);
       const gR = await genR;
       alive();
-      textoGen(gidR, gR?.texto || prR);
+      ofrecerOtro("respiracion", datosP);
+      await escribirPractica(gR?.texto || prR);
       await say(voiceMsg(gR?.texto || prR, gR?.texto ? null : `respiracion-${pilarId}`), 900);
       aprende("Prácticas de hoy", "Meditación, imagen, respiración");
       await say("Cuando termines avísame para continuar.", 700);
@@ -639,7 +631,6 @@ export default function Demo() {
             <b>{N.titulo}</b>
             <p>{N.texto}</p>
             <Detalle d={panel} />
-            {gens.map((g) => <Escritura key={g.id} g={g} />)}
             <Memoria items={memoria} />
           </div>
         )}
@@ -675,7 +666,6 @@ export default function Demo() {
         <h2 key={note} className="titulo-nota" aria-label={N.titulo}><Letras texto={N.titulo} /></h2>
         <p>{N.texto}</p>
         <Detalle d={panel} />
-        {gens.length > 0 && <div className="escs">{gens.map((g) => <Escritura key={g.id} g={g} />)}</div>}
         <Memoria items={memoria} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
