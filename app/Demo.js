@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ElementArt, CaminoArt, Thermometer } from "./Art";
 import {
-  PILARES, ORDEN_PILARES, PREGUNTAS, RESPUESTAS, BIENVENIDA, PRIVACIDAD, PRACTICAS_RUTA,
+  PILARES, ORDEN_PILARES, PREGUNTAS, RESPUESTAS, BIENVENIDA, PRIVACIDAD, MAS_INFO, PRACTICAS_RUTA,
   CAMINOS, PRACTICAS_PULSO, PRACTICAS_PULSO_ORDEN, DERIVACION, NOTAS, CONTINUAR_INICIO, ESTADOS_DEF, pick, shuffle,
 } from "../lib/content";
 
@@ -93,27 +93,32 @@ function Avance({ d }) {
   );
 }
 
-function BTS({ m }) {
-  const total = m.pasos.length;
-  const [n, setN] = useState(1);
-  useEffect(() => {
-    const t = setInterval(() => setN((x) => (x > total ? x : x + 1)), 600);
-    return () => clearInterval(t);
-  }, [total]);
-  const done = n > total;
+function Proc({ m }) {
   return (
-    <div className={"bts" + (m.alerta ? " alerta" : "")}>
-      <div className="bts-head"><span className={"dot" + (done ? " off" : "")} />DETRÁS DE ESCENA · <em>lo que la persona no ve</em></div>
-      <div className="bts-title">{m.titulo}</div>
-      <ul className="bts-steps">
-        {m.pasos.slice(0, Math.min(n, total)).map((p, i) => {
-          const ok = done || i < n - 1;
+    <div className="proc">
+      <span className="ring" />
+      <span className="ptxt" key={m.paso}>{m.pasos[m.paso || 0]}</span>
+    </div>
+  );
+}
+
+function Detalle({ d }) {
+  if (!d) return null;
+  return (
+    <div className={"det" + (d.alerta ? " alerta" : "")}>
+      <div className="det-tag"><span className={"dot" + (d.listo ? " off" : "")} />Detrás de escena</div>
+      <div className="det-title">{d.titulo}</div>
+      {d.explica && <p className="det-exp">{d.explica}</p>}
+      <ul className="det-steps">
+        {d.pasos.map((p, i) => {
+          if (!(d.listo || i <= d.paso)) return null;
+          const ok = d.listo || i < d.paso;
           return <li key={i} className={ok ? "ok" : "run"}><span className="mark">{ok ? "✓" : ""}</span>{p}</li>;
         })}
       </ul>
-      {m.barras && n >= 2 && (
+      {d.barras && (d.listo || d.paso >= 1) && (
         <div className="bars">
-          {m.barras.map((b, i) => (
+          {d.barras.map((b, i) => (
             <div className={"brow" + (b.destacado ? " hi" : "")} key={i}>
               <span className="bl">{b.label}</span>
               <span className="bt"><span className="bf" style={{ width: (b.valor / b.max) * 100 + "%" }} /></span>
@@ -122,14 +127,14 @@ function BTS({ m }) {
           ))}
         </div>
       )}
-      {done && m.resultado && <div className="bts-res">{m.resultado}</div>}
-      {done && m.nota && <div className="bts-note">{m.nota}</div>}
+      {d.listo && d.resultado && <div className="det-res">{d.resultado}</div>}
+      {d.listo && d.nota && <div className="det-note">{d.nota}</div>}
     </div>
   );
 }
 
 function Bubble({ m }) {
-  if (m.from === "bts") return <div className="msg eme"><BTS m={m} /></div>;
+  if (m.from === "bts") return <div className="msg eme"><Proc m={m} /></div>;
   if (m.from === "user") return <div className="msg user"><div className="bubble">{m.text}</div></div>;
   return (
     <div className="msg eme">
@@ -155,6 +160,7 @@ export default function Demo() {
   const [note, setNote] = useState("llegada");
   const [showNote, setShowNote] = useState(false);
   const [btsOn, setBtsOn] = useState(true);
+  const [panel, setPanel] = useState(null);
   const btsRef = useRef(true);
   const [draft, setDraft] = useState("");
   const [manifest, setManifest] = useState({});
@@ -186,7 +192,7 @@ export default function Demo() {
 
   const start = useCallback(async () => {
     const my = ++run.current;
-    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada");
+    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null);
     const alive = () => { if (run.current !== my) throw new Error("cancel"); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)).then(alive);
     const push = (m) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "eme", ...m }]); };
@@ -201,12 +207,22 @@ export default function Demo() {
       push(m);
       await sleep(450);
     };
-    const STEP = 600;
+    const STEP = 1100;
+    const scene = (k) => { setNote(k); setPanel(null); };
     const bts = async (d) => {
       if (!btsRef.current) return;
       alive();
-      setMessages((x) => [...x, { id: ++idc.current, from: "bts", type: "bts", ...d }]);
-      await sleep(d.pasos.length * STEP + 1100);
+      const id = ++idc.current;
+      setMessages((x) => [...x, { id, from: "bts", type: "proc", pasos: d.pasos, paso: 0 }]);
+      setPanel({ ...d, paso: 0, listo: false });
+      for (let i = 0; i < d.pasos.length; i++) {
+        setMessages((x) => x.map((m) => (m.id === id ? { ...m, paso: i } : m)));
+        setPanel((p) => (p ? { ...p, paso: i } : p));
+        await sleep(STEP);
+      }
+      setPanel((p) => (p ? { ...p, paso: d.pasos.length, listo: true } : p));
+      setMessages((x) => x.filter((m) => m.id !== id));
+      await sleep(600);
     };
     const said = (text) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "user", text }]); };
     const ask = (cfg) => new Promise((resolve) => {
@@ -242,29 +258,34 @@ export default function Demo() {
 
     try {
       // ---- 1. Llegada
-      setNote("llegada");
+      scene("llegada");
       await say(pick(BIENVENIDA), 900);
       await say(PRIVACIDAD, 1300);
       let ok = false;
+      let contado = false;
       while (!ok) {
-        const v = await choose({ options: [{ label: "¡Sí, adelante!", value: "si" }, { label: "Cuéntame más", value: "mas" }] });
+        const opts = contado
+          ? [{ label: "¡Sí, adelante!", value: "si" }]
+          : [{ label: "¡Sí, adelante!", value: "si" }, { label: "Cuéntame más", value: "mas" }];
+        const v = await choose({ options: opts });
         if (v.value === "si") ok = true;
-        else await say("Puedo acompañarte con prácticas cortas de meditación y respiración, conversar contigo cuando necesites hablar y mostrarte tu avance. No sustituyo a un profesional de la salud; si algo lo requiere, te oriento hacia una persona. ¿Seguimos?", 1300);
+        else { contado = true; await say(MAS_INFO, 1300); }
       }
       await say("¿Cómo te gustaría que te llame?");
       const nv = await ask({ options: [{ label: "Prefiero no decirlo", value: "skip" }], text: true, placeholder: "Escribe un nombre o apodo" });
       if (nv.text) { nombre = nv.text.slice(0, 24); said(nombre); } else said(nv.label);
       await sleep(350);
-      await say(nombre ? `¡Hola, ${nombre}! 🙌` : "¡Hola! 🙌", 700);
-      await say(CONTINUAR_INICIO, 1200);
+      await say(`Me alegra que estés aquí${nombre ? ", " + nombre : ""}. Vamos a empezar por reconocer cómo estás hoy, para que todo lo que sigue parta de ahí. 🌱`, 1300);
 
       // ---- 2. Índice EME
-      setNote("indice");
-      await say(A("para conocerte mejor te haré tres preguntas cortas. Responde según qué tan seguido te pasa."), 1100);
+      scene("indice");
+      await say(A("vamos con calma y de a poco. Te haré tres preguntas sobre cómo te sientes."), 1100);
+      await say("Elige la opción que más se parezca a tu experiencia. Cualquier respuesta sirve para guiar tu ruta. 🌱", 1100);
       const preguntas = shuffle(PREGUNTAS).slice(0, 3);
+      const conectores = ["Empecemos por aquí:", "Sigamos con esta:", "Y para cerrar:"];
       const puntajes = [];
-      for (const q of preguntas) {
-        await say(q.texto, 800);
+      for (const [qi, q] of preguntas.entries()) {
+        await say(`${conectores[qi]}\n${q.texto}`, 800);
         const v = await choose({ options: RESPUESTAS.map((r) => ({ label: r.label, value: r.valor })), style: "list" });
         puntajes.push({ pilar: q.pilar, valor: v.value });
       }
@@ -275,6 +296,7 @@ export default function Demo() {
         const est = pct <= 20 ? "Crisis" : pct <= 40 ? "Aflicción" : pct <= 70 ? "Incomodidad" : "Bienestar";
         await bts({
           titulo: "Caracterizando a la persona",
+        explica: "Mientras la persona responde, eme procesa sus respuestas por dentro. Estos cálculos no se le muestran en el chat: la persona solo vive la conversación.",
           pasos: ["Sumando el puntaje de cada respuesta", "Calculando el Índice EME (lectura parcial)", "Ubicando el estado y el porcentaje de bienestar"],
           barras: puntajes.map((p) => ({ label: PILARES[p.pilar].nombre, valor: p.valor, max: 3 })),
           resultado: `Índice ${idx.toFixed(2)} de 3 · ${pct}% de bienestar · ${est}`,
@@ -284,13 +306,14 @@ export default function Demo() {
       await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás. 🌱", 900);
 
       // ---- 3. Ruta a la medida
-      setNote("ruta");
+      scene("ruta");
       const menor = puntajes.reduce((a, b) => (b.valor < a.valor ? b : a), puntajes[0]);
       const empatados = puntajes.filter((p) => p.valor === menor.valor).map((p) => p.pilar);
       const pilarId = ORDEN_PILARES.find((p) => empatados.includes(p));
       const P = PILARES[pilarId];
       await bts({
         titulo: "Sugiriendo la ruta a la medida",
+        explica: "Con esos puntajes, eme decide por qué pilar sugerir empezar. La persona recibe una sugerencia en palabras y conserva la decisión de su estado.",
         pasos: [
           "Buscando el pilar con menor puntaje",
           empatados.length > 1 ? "Hay empate: se desempata siguiendo el ciclo de los pilares" : null,
@@ -318,6 +341,7 @@ export default function Demo() {
       await say("¡Gracias por reconocerlo! Es importante saber cómo inicias.", 800);
       await bts({
         titulo: "Personalizando la práctica de hoy",
+        explica: "eme cruza el estado elegido con el termómetro para ajustar la intensidad de la práctica de hoy.",
         pasos: [
           `Estado elegido: ${estado}`,
           `Termómetro inicial: ${t1} de 10`,
@@ -326,30 +350,33 @@ export default function Demo() {
         resultado: "Cada práctica se ajusta a cómo llega la persona ese día.",
       });
 
-      setNote("practica");
+      scene("practica");
       const prM = pick(PRACTICAS_RUTA[pilarId].meditacion).replaceAll("{estado}", estado.toLowerCase());
       const prR = pick(PRACTICAS_RUTA[pilarId].respiracion);
       await say(A("al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu estado 🌱\nEscucha. Si puedes hazlo con audífonos 🎧"), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
-        titulo: "Generando tu meditación",
-        pasos: ["Leyendo tu estado y tu termómetro", "Eligiendo la metáfora y la música del día", "Escribiendo el guion de la meditación", "Sintetizando la voz de eme"],
+        titulo: "Generando la meditación",
+        explica: "eme prepara una meditación para esta persona, a partir de su estado y de cómo llegó hoy.",
+        pasos: ["Leyendo el estado y el termómetro", "Eligiendo la metáfora y la música del día", "Escribiendo el guion de la meditación", "Sintetizando la voz de eme"],
         nota: "Simulado: en la demo la pieza sale de variantes preparadas o de tus propios archivos.",
       });
       await say(voiceMsg(prM, `meditacion-${pilarId}`), 900);
       await say("Cuando lo desees, toca el siguiente botón para que pasemos al ejercicio de respiración. 😮‍💨", 900);
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       await bts({
-        titulo: "Generando tu imagen del día",
-        pasos: ["Traduciendo tu estado en imagen", "Componiendo colores y formas únicas para ti"],
+        titulo: "Generando la imagen del día",
+        explica: "eme prepara una imagen propia para el estado elegido: la persona nunca recibe una imagen genérica.",
+        pasos: ["Traduciendo el estado en imagen", "Componiendo colores y formas únicas"],
         nota: "Simulado: la imagen de la demo es una composición generada al momento.",
       });
       await say({ type: "image", pilar: pilarId, hue: P.hue, seed: rnd(), src: media("imagenes", pilarId), caption: estado }, 900);
       await say("Observa la imagen de hoy con toda tu atención durante un minuto. Guárdala en tu mente y en tu corazón mientras escuchas el próximo audio. 🎧", 1100);
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       await bts({
-        titulo: "Generando tu respiración",
-        pasos: ["Tomando el día de tu semana", "Eligiendo la afirmación de cierre", "Sintetizando la voz de eme"],
+        titulo: "Generando la respiración",
+        explica: "eme selecciona la respiración del día y su afirmación de cierre.",
+        pasos: ["Tomando el día de la semana", "Eligiendo la afirmación de cierre", "Sintetizando la voz de eme"],
         nota: "Simulado: en la demo sale de variantes preparadas o de tus propios archivos.",
       });
       await say(voiceMsg(prR, `respiracion-${pilarId}`), 900);
@@ -362,14 +389,15 @@ export default function Demo() {
       await say(`Gracias${nombre ? ", " + nombre : ""}, reconocer el efecto de estas prácticas te ayuda a ser constante en tu proceso.`, 900);
 
       // ---- 4. Escucha compasiva y Pulso
-      setNote("escucha");
+      scene("escucha");
       const caminosHechos = [];
       const recorrer = async (camino) => {
-        setNote("pulso");
+        scene("pulso");
         const C = CAMINOS[camino];
         await bts({
-          titulo: `Armando tu camino: ${C.nombre}`,
-          pasos: [`Camino elegido: ${C.nombre}`, "Combinando tres prácticas: respirar, soltar y escuchar", "Ajustando el ritmo a lo que escribiste"],
+          titulo: `Armando el camino: ${C.nombre}`,
+          explica: "eme arma el camino combinando tres prácticas cortas según lo que la persona escribió.",
+          pasos: [`Camino elegido: ${C.nombre}`, "Combinando tres prácticas: respirar, soltar y escuchar", "Ajustando el ritmo a lo que escribió"],
           nota: "Pulso registra que se recorrió el camino, sin medir el bienestar.",
         });
         await say({ type: "image", camino, hue: C.hue, seed: rnd(), src: media("imagenes", `pulso-${camino}`), caption: `Camino ${C.nombre}` }, 800);
@@ -414,19 +442,20 @@ export default function Demo() {
         const partes = String(res.respuesta).split(/\n+/).filter(Boolean);
         riesgo = Boolean(res.riesgo);
         await bts({
-          titulo: "Leyendo lo que escribiste",
-          pasos: ["Leyendo tu mensaje", "Detectando el tono emocional", "Revisando señales de riesgo", riesgo ? "Señal de riesgo detectada" : "Sin señales de riesgo", riesgo ? "Preparando la derivación a una persona" : "Eligiendo un camino de Pulso"],
+          titulo: "Leyendo lo que la persona escribió",
+        explica: "eme lee el tono y las señales del mensaje para decidir cómo responder y qué camino de Pulso ofrecer. La persona solo ve la respuesta.",
+          pasos: ["Leyendo el mensaje", "Detectando el tono emocional", "Revisando señales de riesgo", riesgo ? "Señal de riesgo detectada" : "Sin señales de riesgo", riesgo ? "Preparando la derivación a una persona" : "Eligiendo un camino de Pulso"],
           resultado: `Tono: ${res.sentimiento || "neutro"} · ${riesgo ? "Riesgo: derivar a una persona" : `Riesgo: sin señales · Camino: ${CAMINOS[res.camino]?.nombre || "Tormenta"}`}`,
           alerta: riesgo,
         });
         if (!(riesgo && res.origen === "respaldo")) for (const p of partes) await say(p, 700);
 
         if (riesgo) {
-          setNote("riesgo");
+          scene("riesgo");
           for (const d of DERIVACION) await say(d, 1300);
           await choose({ options: [{ label: "Entendido", value: "ok" }] });
         } else {
-          setNote("pulso");
+          scene("pulso");
           let camino = res.camino;
           await say(`Tengo un camino de Pulso que puede ayudarte ahora: «${CAMINOS[camino].nombre}», ${CAMINOS[camino].frase}. Son tres prácticas cortas.`, 1300);
           let v = await choose({ options: [{ label: "Empezar", value: "go" }, { label: "Prefiero otro", value: "otro" }, { label: "Ahora no", value: "no" }] });
@@ -442,7 +471,7 @@ export default function Demo() {
         }
       } else {
         await say(`Muy bien${nombre ? " " + nombre : ""}.`, 600);
-        setNote("pulso");
+        scene("pulso");
         await say("Si en algún momento del día lo necesitas, tengo Pulso: caminos cortos para el momento que estés viviendo. ¿Quieres conocerlo?", 1300);
         const pv = await choose({ options: [{ label: "Sí, mostrar", value: "si" }, { label: "Ahora no", value: "no" }] });
         if (pv.value === "si") {
@@ -453,10 +482,11 @@ export default function Demo() {
       }
 
       // ---- 5. Avance
-      setNote("avance");
+      scene("avance");
       await say("Cuando aparezca el cansancio, un pensamiento inquieto o malestar, puedes volver a estos ejercicios y sostener el estado que elegiste.\n\n✨ Escucha la meditación\n🌱 Haz la respiración\n🖼️ Enfoca tu atención en la imagen", 1400);
       await bts({
-        titulo: "Actualizando tu ruta",
+        titulo: "Actualizando la ruta",
+        explica: "eme guarda el registro de hoy y prepara la continuación de la ruta para mañana.",
         pasos: ["Guardando el registro de hoy", `Comparando el termómetro: ${t1} → ${t2} (${t2 - t1 >= 0 ? "+" : ""}${t2 - t1})`, "Preparando la práctica de mañana"],
         resultado: "Mañana la ruta continúa desde cómo terminaste hoy.",
       });
@@ -487,7 +517,7 @@ export default function Demo() {
       <div className="phone">
         <header className="top">
           <div className="avatar">e</div>
-          <div className="who"><b>eme</b><span>asistente de IA · Sentido EME</span></div>
+          <div className="who"><b>eme</b><span>guía digital · Sentido EME</span></div>
           <button className="ic" onClick={() => start()} aria-label="Reiniciar demo" title="Reiniciar">↺</button>
           <button className={"ic" + (btsOn ? " on" : "")} onClick={() => { btsRef.current = !btsOn; setBtsOn(!btsOn); }} aria-label="Detrás de escena" title="Ver cómo piensa eme">◐</button>
           <button className="ic info" onClick={() => setShowNote(!showNote)} aria-label="Qué estás viendo" title="Qué estás viendo">i</button>
@@ -496,6 +526,7 @@ export default function Demo() {
           <div className="sheet" onClick={() => setShowNote(false)}>
             <b>{N.titulo}</b>
             <p>{N.texto}</p>
+            <Detalle d={panel} />
           </div>
         )}
         <div className="chat" ref={scroller}>
@@ -529,6 +560,7 @@ export default function Demo() {
         <div className="tag">Qué estás viendo</div>
         <h2>{N.titulo}</h2>
         <p>{N.texto}</p>
+        <Detalle d={panel} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
     </div>
