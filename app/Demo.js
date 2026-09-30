@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ElementArt, CaminoArt, Thermometer } from "./Art";
 import {
   PILARES, ORDEN_PILARES, PREGUNTAS, RESPUESTAS, BIENVENIDA, PRIVACIDAD, MAS_INFO, PRACTICAS_RUTA,
-  CAMINOS, PRACTICAS_PULSO, PRACTICAS_PULSO_ORDEN, DERIVACION, NOTAS, CONTINUAR_INICIO, ESTADOS_DEF, pick, shuffle,
+  CAMINOS, PRACTICAS_PULSO, PRACTICAS_PULSO_ORDEN, DERIVACION, NOTAS, CONTINUAR_INICIO, ESTADOS_DEF, FRASES_ESCUCHA, pick, shuffle,
 } from "../lib/content";
 
 const rnd = () => Math.floor(Math.random() * 1e9);
@@ -440,11 +440,12 @@ export default function Demo() {
 
       if (sh.value === "si") {
         await say("Este es un espacio libre de juicios. Escribe lo que dirían tus emociones si pudieran hablar. ✏️", 1000);
+        const frase = pick(FRASES_ESCUCHA);
         const cv = await ask({
-          options: [{ label: "Hoy me siento sin energía", value: "ejemplo" }],
+          options: [{ label: frase, value: "ejemplo" }],
           text: true, placeholder: "Escribe cómo te sientes",
         });
-        const contenido = cv.text || "Hoy me siento sin energía";
+        const contenido = cv.text || frase;
         said(contenido);
         setTyping(true);
         let res;
