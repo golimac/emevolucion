@@ -408,7 +408,7 @@ export default function Demo() {
       const datosP = { estado, pilar: pilarId, nombre, t1 };
       const genM = generar("meditacion", datosP);
       const genR = generar("respiracion", datosP);
-      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}**.\n🌱\n\nEscucha.\nSi puedes hazlo con audífonos. 🎧`), 1200);
+      await say(A(`al empezar tu rutina con esta pausa guiada preparas el terreno para sembrar y cultivar la semilla de tu **${estado.toLowerCase()}**.\n\nEscucha.\nSi puedes hazlo con audífonos. 🎧`), 1200);
       await choose({ options: [{ label: "¡Comencemos!", value: "ok" }] });
       await bts({
         titulo: "Generando la meditación",
