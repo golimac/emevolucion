@@ -507,7 +507,7 @@ export default function Demo() {
       });
       await say("Te muestro tu recorrido de hoy.", 800);
       await say({ type: "avance", data: { nombre, pilar: P.nombre, estado, practicas, caminos: caminosHechos, t1, t2 } }, 900);
-      await say("¡Gracias por dedicarte este tiempo de calidad! Te espero en la noche 🌚", 900);
+      await say("¡Gracias por dedicarte este tiempo de calidad! Aquí estaré cuando quieras hablar, a la hora que sea. 🌱", 900);
       await say("eme está contigo. 🩵", 700);
       await choose({ options: [{ label: "Volver a empezar", value: "again" }] });
       start();
