@@ -8,6 +8,7 @@ Demo de concepto del acompañamiento permanente de Sentido EME (eme): una conver
 - Contenido prefabricado con variantes al azar (`lib/content.js`).
 - Un solo punto donde habla Claude: la escucha compasiva (`app/api/chat/route.js`). Responde como eme, elige el camino de Pulso y detecta riesgo. Sin clave, límite agotado o fallo de la API, usa respuestas de respaldo y la demo sigue funcionando.
 - Audios e imágenes propios: ver `public/media/LEEME.md`.
+- Tarjetas "Detrás de escena": muestran cómo eme caracteriza a la persona, sugiere la ruta, personaliza y "genera" cada pieza (simulado). Se ocultan con el botón ◐ del encabezado.
 - Panel lateral "Qué estás viendo" con el elemento del concepto en pantalla (en teléfono, botón `i`).
 
 Los textos de práctica y las cinco preguntas del Índice son ilustrativos (el Índice real tiene 25). El pilar de la ruta se calcula con la pregunta de menor puntaje, asumiendo que las cinco preguntas de ejemplo siguen el orden de los pilares.

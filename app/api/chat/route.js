@@ -43,7 +43,7 @@ Reglas:
 - Nunca menciones elementos como tierra, fuego, madera, agua o metal.
 - Si hay señales de riesgo (idea de hacerse daño o de no querer vivir), no intentes resolverlo tú: reconoce con calidez y orienta a hablar con una persona.
 Responde SOLO con un objeto JSON válido, sin texto extra ni bloques de código:
-{"respuesta": "<tu mensaje>", "camino": "tormenta|calma|perdida", "riesgo": true|false}
+{"respuesta": "<tu mensaje>", "camino": "tormenta|calma|perdida", "riesgo": true|false, "sentimiento": "bienestar|neutro|malestar"}
 Criterio de camino: "tormenta" si hay agitación, estrés, ansiedad, agotamiento o rabia; "calma" si la persona busca pausa o bajar el ritmo; "perdida" si hay duelo, ausencia o algo que terminó.`;
 
 function fallback(texto, motivo) {
@@ -52,6 +52,7 @@ function fallback(texto, motivo) {
     respuesta: pick(RESPUESTAS_RESPALDO[c.camino]),
     camino: c.camino,
     riesgo: c.riesgo,
+    sentimiento: c.sentimiento,
     origen: "respaldo",
     motivo,
   };
@@ -108,6 +109,7 @@ export async function POST(req) {
       respuesta,
       camino,
       riesgo: Boolean(parsed.riesgo) || local.riesgo,
+      sentimiento: ["bienestar", "neutro", "malestar"].includes(parsed.sentimiento) ? parsed.sentimiento : local.sentimiento,
       origen: "claude",
     });
   } catch (e) {
