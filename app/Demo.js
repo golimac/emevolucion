@@ -301,12 +301,12 @@ export default function Demo() {
       const nv = await ask({ options: [{ label: "Prefiero no decirlo", value: "skip" }], text: true, placeholder: "Escribe un nombre o apodo" });
       if (nv.text) { nombre = nv.text.slice(0, 24); said(nombre); } else said(nv.label);
       await sleep(350);
-      await say(`Me alegra que estés aquí${nombre ? ", " + nombre : ""}. Vamos a empezar por reconocer cómo estás hoy, para que todo lo que sigue parta de ahí. 🌱`, 1300);
+      await say(`Me alegra que estés aquí${nombre ? ", " + nombre : ""}. Vamos a empezar por reconocer cómo estás hoy, para que todo lo que sigue parta de ahí.`, 1300);
 
       // ---- 2. Índice EME
       scene("indice");
       await say(A("vamos con calma y de a poco. Te haré tres preguntas sobre cómo te sientes."), 1100);
-      await say("Elige la opción que más se parezca a tu experiencia. Cualquier respuesta sirve para guiar tu proceso. 🌱", 1100);
+      await say("Elige la opción que más se parezca a tu experiencia. Cualquier respuesta sirve para guiar tu proceso.", 1100);
       const preguntas = shuffle(PREGUNTAS).slice(0, 3);
       const conectores = ["Empecemos por aquí:", "Sigamos con esta:", "Y para cerrar:"];
       const puntajes = [];
@@ -329,7 +329,7 @@ export default function Demo() {
           nota: "Demo con 3 preguntas de ejemplo. En el producto son 25 y la lectura es completa.",
         });
       }
-      await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás. 🌱", 900);
+      await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás. 🤍", 900);
 
       // ---- 3. Ruta a la medida
       scene("ruta");
@@ -507,7 +507,7 @@ export default function Demo() {
       });
       await say("Te muestro tu recorrido de hoy.", 800);
       await say({ type: "avance", data: { nombre, pilar: P.nombre, estado, practicas, caminos: caminosHechos, t1, t2 } }, 900);
-      await say("¡Gracias por dedicarte este tiempo de calidad! Aquí estaré cuando quieras hablar, a la hora que sea. 🌱", 900);
+      await say("¡Gracias por dedicarte este tiempo de calidad! Aquí estaré cuando quieras hablar, a la hora que sea.", 900);
       await say("eme está contigo. 🩵", 700);
       await choose({ options: [{ label: "Volver a empezar", value: "again" }] });
       start();
