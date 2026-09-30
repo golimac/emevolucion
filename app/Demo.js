@@ -152,13 +152,16 @@ export default function Demo() {
     const alive = () => { if (run.current !== my) throw new Error("cancel"); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)).then(alive);
     const push = (m) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "eme", ...m }]); };
+    // Ritmo de mensajería real: la espera crece con el largo del mensaje.
     const say = async (m, wait = 800) => {
       if (typeof m === "string") m = { type: "text", text: m };
+      const len = m.type === "text" ? m.text.length : m.type === "voice" ? 60 : 30;
+      wait = Math.min(1600 + len * 26, 5200) + Math.min(wait, 1500) * 0.4;
       setTyping(true);
       await sleep(wait);
       setTyping(false);
       push(m);
-      await sleep(300);
+      await sleep(900);
     };
     const said = (text) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "user", text }]); };
     const ask = (cfg) => new Promise((resolve) => {
