@@ -354,7 +354,7 @@ export default function Demo() {
         if (c.value === "ok") break;
         await say("Claro, elige de nuevo el que más te llame.", 600);
       }
-      const t1 = await askThermo("Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu estado? (siendo 1 muy poco, y 10 muy alto) 🌡️");
+      const t1 = await askThermo(`Ahora imagina que tienes un «termómetro interno». ¿Qué grado de 1 a 10 mostraría en tu ${estado.toLowerCase()}? (siendo 1 muy poco, y 10 muy alto) 🌡️`);
       await say({ type: "thermo", valor: t1, etiqueta: estado }, 500);
       await say("¡Gracias por reconocerlo! Es importante saber cómo inicias.", 800);
       await bts({
@@ -402,7 +402,7 @@ export default function Demo() {
       await choose({ options: [{ label: "Continuar", value: "ok" }] });
       let practicas = 2;
 
-      const t2 = await askThermo(`${A(`cuando seleccionaste estado, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu estado.`);
+      const t2 = await askThermo(`${A(`cuando seleccionaste estado, me contaste que en un termómetro de 1 a 10 te identificabas con un ${t1}.`)}\n\n¿Sientes que, después de las prácticas realizadas, tu percepción ha cambiado?\n\nEscribe en ese mismo rango de 1 a 10, cómo notas ahora tu ${estado.toLowerCase()}.`);
       await say({ type: "thermo", valor: t2, etiqueta: estado }, 500);
       await say(`Gracias${nombre ? ", " + nombre : ""}, reconocer el efecto de estas prácticas te ayuda a ser constante en tu proceso.`, 900);
 
