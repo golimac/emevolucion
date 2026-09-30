@@ -102,7 +102,7 @@ function Proc({ m }) {
   );
 }
 
-function Detalle({ d, esperando, onSkip }) {
+function Detalle({ d }) {
   if (!d) return null;
   return (
     <div key={d.id} className={"det" + (d.alerta ? " alerta" : "")}>
@@ -129,12 +129,6 @@ function Detalle({ d, esperando, onSkip }) {
       )}
       {d.listo && d.resultado && <div className="det-res">{d.resultado}</div>}
       {d.listo && d.nota && <div className="det-note">{d.nota}</div>}
-      {esperando && (
-        <div className="det-skip">
-          <button onClick={onSkip}>Seguir ›</button>
-          <span>La demo continúa sola en unos segundos</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -167,8 +161,6 @@ export default function Demo() {
   const [showNote, setShowNote] = useState(false);
   const [btsOn, setBtsOn] = useState(true);
   const [panel, setPanel] = useState(null);
-  const [esperando, setEsperando] = useState(false);
-  const skipRef = useRef(null);
   const btsRef = useRef(true);
   const [draft, setDraft] = useState("");
   const [manifest, setManifest] = useState({});
@@ -215,36 +207,25 @@ export default function Demo() {
       push(m);
       await sleep(450);
     };
-    // Pausa que se puede saltar con el botón "Seguir" del panel.
-    const pausa = (ms) => new Promise((resolve) => {
-      const done = () => { clearTimeout(t); skipRef.current = null; setEsperando(false); resolve(); };
-      const t = setTimeout(done, ms);
-      skipRef.current = done;
-      setEsperando(true);
-    }).then(alive);
     const scene = (k) => { setNote(k); };
-    const words = (t) => (t ? t.trim().split(/\s+/).length : 0);
     const bts = async (d) => {
       if (!btsRef.current) return;
       alive();
-      // En pantallas angostas el panel no se ve: no se agregan pausas de lectura.
+      // El panel solo se lee en pantallas anchas; en celular no se espera.
       const wide = typeof window !== "undefined" && window.matchMedia("(min-width: 901px)").matches;
-      const step = wide ? 1500 : 900;
-      const expMs = wide ? Math.min(2500 + words(d.explica) * 200, 7500) : 0;
-      const holdMs = wide ? Math.min(3000 + words(`${d.resultado || ""} ${d.nota || ""}`) * 220, 9000) : 0;
       const id = ++idc.current;
       setMessages((x) => [...x, { id, from: "bts", type: "proc", pasos: d.pasos, paso: 0 }]);
       setPanel({ ...d, id, paso: 0, listo: false });
       for (let i = 0; i < d.pasos.length; i++) {
         setMessages((x) => x.map((m) => (m.id === id ? { ...m, paso: i } : m)));
         setPanel((p) => (p ? { ...p, paso: i } : p));
-        if (i === 0 && expMs) await pausa(expMs);
-        else await sleep(step);
+        await sleep(wide ? 1500 : 900);
       }
       setPanel((p) => (p ? { ...p, paso: d.pasos.length, listo: true } : p));
       setMessages((x) => x.filter((m) => m.id !== id));
-      if (holdMs) await pausa(holdMs);
+      if (wide) await ask({ options: [{ label: "Continuar", value: "ok" }] });
       else await sleep(600);
+      alive();
     };
     const said = (text) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "user", text }]); };
     const ask = (cfg) => new Promise((resolve) => {
@@ -582,7 +563,7 @@ export default function Demo() {
         <div className="tag">Qué estás viendo</div>
         <h2>{N.titulo}</h2>
         <p>{N.texto}</p>
-        <Detalle d={panel} esperando={esperando} onSkip={() => skipRef.current && skipRef.current()} />
+        <Detalle d={panel} />
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
     </div>

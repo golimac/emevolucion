@@ -129,6 +129,3 @@ li.run .mark { border: 2px solid #c9d4d2; border-top-color: #3fae9b; animation: 
 
 .det { animation: flash 1.4s ease-out; }
 @keyframes flash { 0% { box-shadow: 0 0 0 4px rgba(63,174,155,.55); } 100% { box-shadow: 0 0 0 0 rgba(63,174,155,0); } }
-.det-skip { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
-.det-skip button { white-space: nowrap; flex: none; background: var(--teal); color: #fff; border: 0; border-radius: 16px; padding: 6px 14px; font-size: 13px; }
-.det-skip span { font-size: 12px; color: var(--muted); }
