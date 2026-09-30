@@ -100,10 +100,10 @@ function Avance({ d }) {
   return (
     <div className="card">
       <div className="card-title">Tu avance{d.nombre ? `, ${d.nombre}` : ""}</div>
-      <div className="row"><span>Ruta</span><b>{d.pilar} · {d.estado}</b></div>
+      <div className="row"><span>Estado que cultivas</span><b>{d.estado}</b></div>
       <div className="row"><span>Prácticas hoy</span><b>{d.practicas}</b></div>
       <div className="row"><span>Días de práctica</span><b>1</b></div>
-      <div className="row"><span>Caminos de Pulso</span><b>{d.caminos.length ? d.caminos.join(", ") : "Ninguno aún"}</b></div>
+      <div className="row"><span>Prácticas complementarias</span><b>{d.caminos.length}</b></div>
       <div className="row"><span>Termómetro (1 a 10)</span><b>{d.t1} → {d.t2}</b></div>
       <div className="card-foot">Datos de esta sesión de demo. Tu reporte de recorrido llegará más adelante.</div>
     </div>
@@ -300,7 +300,7 @@ export default function Demo() {
       // ---- 2. Índice EME
       scene("indice");
       await say(A("vamos con calma y de a poco. Te haré tres preguntas sobre cómo te sientes."), 1100);
-      await say("Elige la opción que más se parezca a tu experiencia. Cualquier respuesta sirve para guiar tu ruta. 🌱", 1100);
+      await say("Elige la opción que más se parezca a tu experiencia. Cualquier respuesta sirve para guiar tu proceso. 🌱", 1100);
       const preguntas = shuffle(PREGUNTAS).slice(0, 3);
       const conectores = ["Empecemos por aquí:", "Sigamos con esta:", "Y para cerrar:"];
       const puntajes = [];
@@ -342,7 +342,7 @@ export default function Demo() {
         barras: puntajes.map((p) => ({ label: PILARES[p.pilar].nombre, valor: p.valor, max: 3, destacado: p.pilar === pilarId })),
         resultado: "La sugerencia es un punto de partida: la persona decide el estado que quiere cultivar.",
       });
-      await say(`Tu ruta empieza por ${P.nombre}: ${P.lema}. Es un punto de partida, no una etiqueta; irá cambiando contigo.`, 1400);
+      await say("Con lo que me cuentas, ya tengo una propuesta para comenzar tu proceso.", 1400);
       await say("Ahora elige el estado que quieres fortalecer, alcanzar, o que consideres más importante para tu momento actual. Cualquiera que elijas será una herramienta útil en tu proceso.", 1400);
       const estados = pilarId === "estabilidad" ? ["Amplitud", "Confianza", "Seguridad"] : shuffle(P.estados).slice(0, 3);
       let estado;
@@ -420,7 +420,7 @@ export default function Demo() {
           pasos: [`Camino elegido: ${C.nombre}`, "Combinando tres prácticas: respirar, soltar y escuchar", "Ajustando el ritmo a lo que escribió"],
           nota: "Pulso registra que se recorrió el camino, sin medir el bienestar.",
         });
-        await say({ type: "image", camino, hue: C.hue, seed: rnd(), src: media("imagenes", `pulso-${camino}`), caption: `Camino ${C.nombre}` }, 800);
+        await say({ type: "image", camino, hue: C.hue, seed: rnd(), src: media("imagenes", `pulso-${camino}`), caption: null }, 800);
         for (let i = 0; i < PRACTICAS_PULSO_ORDEN.length; i++) {
           const pp = PRACTICAS_PULSO_ORDEN[i];
           await say(`${i + 1} de 3 · ${pp.titulo}`, 600);
@@ -430,7 +430,7 @@ export default function Demo() {
           if (s.value === "ok") practicas++;
         }
         caminosHechos.push(C.nombre);
-        await say(`Quedó registrado que recorriste el camino ${C.nombre}. Solo queda como rastro tuyo; no mide cómo estás.`, 1100);
+        await say("Quedó registrada esta práctica en tu proceso. Solo queda como rastro tuyo; no mide cómo estás.", 1100);
       };
 
       await say(A("poner en palabras lo que sientes puede ayudarte a comprender mejor lo que te pasa e identificar tus necesidades."), 1200);
@@ -476,29 +476,16 @@ export default function Demo() {
           await choose({ options: [{ label: "Entendido", value: "ok" }] });
         } else {
           scene("pulso");
-          let camino = res.camino;
-          await say(`Tengo un camino de Pulso que puede ayudarte ahora: «${CAMINOS[camino].nombre}», ${CAMINOS[camino].frase}. Son tres prácticas cortas.`, 1300);
-          let v = await choose({ options: [{ label: "Empezar", value: "go" }, { label: "Prefiero otro", value: "otro" }, { label: "Ahora no", value: "no" }] });
-          if (v.value === "otro") {
-            const otros = Object.keys(CAMINOS).filter((c) => c !== camino);
-            await say("Claro. ¿Cuál te acompaña mejor hoy?", 700);
-            const o = await choose({ options: otros.map((c) => ({ label: `${CAMINOS[c].nombre}: ${CAMINOS[c].frase}`, value: c })) });
-            camino = o.value;
-            v = { value: "go" };
-          }
+          const camino = res.camino;
+          await say("Gracias por contármelo. Para acompañar lo que estás viviendo hoy, te propongo una práctica complementaria de tres momentos cortos: respirar, soltar y escuchar. Es un paréntesis dentro de tu proceso.", 1300);
+          const v = await choose({ options: [{ label: "Empezar", value: "go" }, { label: "Ahora no", value: "no" }] });
           if (v.value === "go") await recorrer(camino);
-          else await say("De acuerdo. Pulso está aquí cuando lo necesites.", 700);
+          else await say("De acuerdo. Cuando lo necesites, cuéntame cómo te sientes y te acompaño.", 700);
         }
       } else {
         await say(`Muy bien${nombre ? " " + nombre : ""}.`, 600);
         scene("pulso");
-        await say("Si en algún momento del día lo necesitas, tengo Pulso: caminos cortos para el momento que estés viviendo. ¿Quieres conocerlo?", 1300);
-        const pv = await choose({ options: [{ label: "Sí, mostrar", value: "si" }, { label: "Ahora no", value: "no" }] });
-        if (pv.value === "si") {
-          await say("Elige el que más se parezca a tu momento.", 700);
-          const o = await choose({ options: Object.keys(CAMINOS).map((c) => ({ label: `${CAMINOS[c].nombre}: ${CAMINOS[c].frase}`, value: c })), style: "list" });
-          await recorrer(o.value);
-        }
+        await say("Cuando quieras, escríbeme cómo te sientes y te acompaño con una práctica para ese momento.", 1300);
       }
 
       // ---- 5. Avance
