@@ -230,7 +230,7 @@ export default function Demo() {
       if (typeof window !== "undefined" && window.matchMedia("(min-width: 901px)").matches) await ask({ options: [{ label: "Continuar", value: "ok" }] });
       alive();
     };
-    const bts = async (d, sinEspera = false) => {
+    const bts = async (d, sinEspera = true) => {
       if (!btsRef.current) return;
       alive();
       // El panel solo se lee en pantallas anchas; en celular no se espera.
@@ -330,6 +330,7 @@ export default function Demo() {
         });
       }
       await say("Gracias por responder con honestidad. Ya tengo una primera imagen de cómo estás. 🤍", 900);
+      await esperarContinuar();
 
       // ---- 3. Ruta a la medida
       scene("ruta");
