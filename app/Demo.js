@@ -224,6 +224,11 @@ export default function Demo() {
   const [panel, setPanel] = useState(null);
   const [memoria, setMemoria] = useState([]);
   const [gens, setGens] = useState([]);
+  const [tab, setTab] = useState("bts");
+  const [unseen, setUnseen] = useState({});
+  const manual = useRef(false);
+  const tabTimer = useRef(null);
+  const readyAt = useRef(0);
   const btsRef = useRef(true);
   const [draft, setDraft] = useState("");
   const [manifest, setManifest] = useState({});
@@ -253,9 +258,26 @@ export default function Demo() {
     return Array.isArray(list) && list.length ? pick(list) : null;
   };
 
+  // Pestañas del panel: siguen solas lo que ocurre, salvo que la persona explore.
+  const auto = useCallback((t) => {
+    if (manual.current) { setUnseen((u) => (u[t] ? u : { ...u, [t]: true })); return; }
+    setTab(t);
+    setUnseen((u) => ({ ...u, [t]: false }));
+  }, []);
+  useEffect(() => { if (!panel) return; clearTimeout(tabTimer.current); manual.current = false; auto("bts"); }, [panel?.id]);
+  useEffect(() => { if (panel?.listo) readyAt.current = Date.now(); }, [panel?.listo]);
+  const firmaGens = gens.map((g) => g.id + (g.texto ? "t" : "") + (g.alt ? "a" : "")).join();
+  useEffect(() => { if (!gens.length) return; clearTimeout(tabTimer.current); auto("esc"); }, [firmaGens]);
+  useEffect(() => {
+    if (!memoria.length) return;
+    clearTimeout(tabTimer.current);
+    tabTimer.current = setTimeout(() => auto("mem"), Math.max(1500, 5000 - (Date.now() - readyAt.current)));
+  }, [memoria]);
+  const elegirTab = (t) => { manual.current = true; setTab(t); setUnseen((u) => ({ ...u, [t]: false })); };
+
   const start = useCallback(async () => {
     const my = ++run.current;
-    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null); setMemoria([]); setGens([]);
+    setMessages([]); setChoices(null); setTyping(false); setDraft(""); setNote("llegada"); setPanel(null); setMemoria([]); setGens([]); setTab("bts"); setUnseen({}); manual.current = false;
     const alive = () => { if (run.current !== my) throw new Error("cancel"); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)).then(alive);
     const push = (m) => { alive(); setMessages((x) => [...x, { id: ++idc.current, from: "eme", ...m }]); };
@@ -669,9 +691,18 @@ export default function Demo() {
         <div className="tag">Qué estás viendo</div>
         <h2 key={note} className="titulo-nota" aria-label={N.titulo}><Letras texto={N.titulo} /></h2>
         <p>{N.texto}</p>
-        <Detalle d={panel} />
-        {gens.map((g) => <Escritura key={g.id} g={g} />)}
-        <Memoria items={memoria} />
+        <div className="tabs" role="tablist">
+          {[["bts", "Detrás de escena"], ["esc", "eme escribe"], ["mem", "Lo que eme aprende"]].map(([k, l]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={"tabbtn" + (tab === k ? " on" : "")} onClick={() => elegirTab(k)}>
+              {l}{unseen[k] && tab !== k && <i className="tabdot" />}
+            </button>
+          ))}
+        </div>
+        <div className="tabbody">
+          {tab === "bts" && (panel ? <Detalle d={panel} /> : <div className="vacio">Aquí verás cómo procesa eme lo que ocurre en la conversación.</div>)}
+          {tab === "esc" && (gens.length ? gens.map((g) => <Escritura key={g.id} g={g} />) : <div className="vacio">Aquí verás a eme escribiendo las prácticas para la persona.</div>)}
+          {tab === "mem" && (memoria.length ? <Memoria items={memoria} /> : <div className="vacio">Aquí se irá llenando lo que eme aprende de la persona.</div>)}
+        </div>
         <div className="foot">Demo de concepto. Los contenidos son ilustrativos; el diseño final usa la biblioteca propia de Sentido EME.</div>
       </aside>
     </div>

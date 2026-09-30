@@ -124,7 +124,7 @@ li.run .mark { border: 2px solid #c9d4d2; border-top-color: #3fae9b; animation: 
 .brow.hi .bf { background: #d18f45; } .brow.hi .bl { color: #a4661f; font-weight: 700; }
 .det-res { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.1); font-weight: 700; }
 .det-note { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
-.side { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.side { height: calc(100dvh - 32px); display: flex; flex-direction: column; overflow: hidden; }
 .sheet { max-height: 70%; overflow-y: auto; }
 
 .det { animation: flash 1.4s ease-out; }
@@ -160,3 +160,17 @@ li.run .mark { border: 2px solid #c9d4d2; border-top-color: #3fae9b; animation: 
 .esc-btn { margin-top: 10px; border: 1px solid var(--teal); background: transparent; color: var(--teal); border-radius: 18px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
 .esc-btn:hover { background: rgba(106,165,168,.12); }
 @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+
+.tabs { display: flex; gap: 4px; margin: 14px 0 10px; border-bottom: 1px solid rgba(0,0,0,.12); flex: none; }
+.tabbtn { position: relative; border: 0; background: transparent; padding: 7px 9px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: inherit; }
+.tabbtn.on { color: var(--ink); font-weight: 700; border-bottom-color: var(--teal); }
+.tabbtn:hover { color: var(--ink); }
+.tabdot { position: absolute; top: 5px; right: 1px; width: 7px; height: 7px; border-radius: 50%; background: #d4915a; }
+.tabbody { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.22) transparent; }
+.tabbody::-webkit-scrollbar { width: 6px; }
+.tabbody::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); border-radius: 3px; }
+.tabbody::-webkit-scrollbar-track { background: transparent; }
+.tabbody > .det, .tabbody > .esc, .tabbody > .mem { margin-top: 0; }
+.tabbody > .esc + .esc { margin-top: 12px; }
+.vacio { font-size: 14px; color: var(--muted); font-style: italic; padding: 8px 2px; }
+.side .foot { flex: none; margin-top: 12px; }
