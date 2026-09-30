@@ -490,7 +490,7 @@ export default function Demo() {
 
       // ---- 5. Avance
       scene("avance");
-      await say(`Cuando aparezca el cansancio, un pensamiento inquieto o malestar, puedes volver a estos ejercicios y sostener tu **${estado.toLowerCase()}**.\n\n✨ Escucha la meditación\n🌱 Haz la respiración\n🖼️ Enfoca tu atención en la imagen`, 1400);
+      await say(`Cuando aparezca el cansancio, un pensamiento inquieto o malestar, escríbeme y te acompaño con la práctica que más te sirva en ese momento. Lo que hicimos hoy queda en esta conversación por si quieres volver a escucharlo.`, 1400);
       await bts({
         titulo: "Actualizando la ruta",
         explica: "eme guarda el registro de hoy y prepara la continuación de la ruta para mañana.",
